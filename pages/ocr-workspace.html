@@ -1,0 +1,135 @@
+<main id="ocrView" class="page-view">
+  <div class="hero-section" style="padding: 24px 0 12px; text-align: left; display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <h2 class="hero-title" style="font-size:28px;margin-bottom:4px;" id="ocrDocumentTitle">Processing Document</h2>
+      <p class="hero-subtitle" style="margin:0;font-size:14px;">One-Shot Long-Horizon OCR Processing in progress...</p>
+    </div>
+
+    <button class="btn btn-secondary" onclick="switchView('upload')">
+      <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> Upload Another
+    </button>
+  </div>
+
+  <!-- 3-Panel Architecture Grid (Matching long-horizon-ocr.gif) -->
+  <div class="ocr-3panel-grid">
+    
+    <!-- PANEL 1 (LEFT): INPUT DOCUMENT PANEL -->
+    <div class="workspace-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i data-lucide="file-text" style="width:16px;height:16px;"></i> Input Document
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div id="pdfPageNav" style="display:none;align-items:center;gap:4px;">
+            <button class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="changePdfPage(-1)">&lt;</button>
+            <span id="pdfPageLabel" style="font-size:11px;color:var(--text-secondary);font-family:var(--font-mono);">1 / 1</span>
+            <button class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="changePdfPage(1)">&gt;</button>
+          </div>
+          <div id="ocrFileBadge" class="format-badge">PDF</div>
+        </div>
+      </div>
+
+      <div class="document-controls" aria-label="OCR processing controls">
+        <label class="speed-selector" for="speedSelector">
+          <span>Speed</span>
+          <select id="speedSelector" aria-label="OCR processing speed" onchange="updateOcrSpeed(this.value)">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="fast">Fast</option>
+          </select>
+        </label>
+        <div class="processing-actions">
+          <button id="startOcrBtn" class="btn btn-primary" type="button" onclick="startLongHorizonOCR()">
+            <i data-lucide="play" style="width:13px;height:13px;"></i> Start
+          </button>
+          <button id="stopOcrBtn" class="btn btn-secondary" type="button" onclick="stopLongHorizonOCR()" disabled>
+            <i data-lucide="square" style="width:13px;height:13px;"></i> Stop
+          </button>
+        </div>
+      </div>
+
+      <div class="document-viewport">
+        <div id="laserScanBeam" class="laser-scan-beam"></div>
+        <div id="imageFrame" class="image-frame">
+          <div id="bboxContainer" class="bbox-container"></div>
+          <img id="ocrDocumentImg" class="document-image" src="" alt="Uploaded Input Document" />
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 2 (CENTER): RAW OCR OUTPUT STREAM PANEL -->
+    <div class="workspace-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i data-lucide="terminal" style="width:16px;height:16px;"></i> Raw OCR Output Stream
+        </div>
+
+        <div style="display:flex;gap:6px;">
+          <button id="copyBtn" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="copyOutputText()">
+            <i data-lucide="copy" style="width:12px;height:12px;"></i> Copy
+          </button>
+          <div class="export-dropdown-wrapper" style="position:relative;">
+            <button id="exportBtn" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="toggleExportDropdown()">
+              <i data-lucide="download" style="width:12px;height:12px;"></i> Export <i data-lucide="chevron-down" style="width:11px;height:11px;margin-left:2px;"></i>
+            </button>
+            <div id="exportDropdown" class="panel-menu-dropdown" style="display:none;right:0;top:calc(100% + 6px);min-width:150px;">
+              <div class="panel-menu-item" onclick="exportMarkdownFile()">
+                <i data-lucide="file-text" style="width:13px;height:13px;"></i> Export as .md
+              </div>
+              <div class="panel-menu-item" onclick="exportTextFile()">
+                <i data-lucide="file-type-2" style="width:13px;height:13px;"></i> Export as .text
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="output-body" style="background:#030304;">
+        <div id="rawCodeStream" class="raw-code-stream"></div>
+        <span id="typewriterCursor" class="cursor-blink"></span>
+      </div>
+
+      <div class="metrics-bar">
+        <div class="metric-item">
+          <span>Tokens:</span>
+          <span id="metricTokens" class="metric-value">0</span>
+        </div>
+        <div class="metric-item">
+          <span>Speed:</span>
+          <span id="metricTps" class="metric-value">0.0 t/s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 3 (RIGHT): LAYOUT VISUALIZATION PANEL -->
+    <div class="workspace-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i> Layout Visualization
+        </div>
+
+        <div class="output-tabs">
+          <button id="tabRendered" class="tab-btn active" onclick="switchOutputTab('rendered')">Rendered</button>
+          <button id="tabJson" class="tab-btn" onclick="switchOutputTab('json')">AST JSON</button>
+        </div>
+      </div>
+
+      <div class="output-body">
+        <div id="visualizationContent"></div>
+      </div>
+
+      <div class="metrics-bar">
+        <div class="metric-item">
+          <span>Decode Latency:</span>
+          <span id="metricLatency" class="metric-value">0.00s</span>
+        </div>
+        <div class="metric-item" id="metricConfidenceContainer" style="display:none;">
+          <span>Confidence:</span>
+          <span id="metricConfidence" class="metric-value" style="color:#ffffff;">99.4%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>

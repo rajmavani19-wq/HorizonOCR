@@ -1,0 +1,599 @@
+/* 
+  ================================================================
+  UNLIMITED OCR - 3-Panel OCR Processing Workspace Styles
+  ================================================================
+*/
+
+.ocr-3panel-grid {
+  display: grid;
+  grid-template-columns: 32% minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+  min-height: 680px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1100px) {
+  .ocr-3panel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workspace-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.panel-title {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.format-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Panel 1: Processing Controls */
+.document-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.speed-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.speed-selector select {
+  min-width: 92px;
+  padding: 6px 26px 6px 9px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+
+.speed-selector select:focus {
+  outline: none;
+  border-color: var(--border-active);
+}
+
+.processing-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.processing-actions .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.processing-actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Panel 1: Document Viewport */
+.document-viewport {
+  flex: 1;
+  position: relative;
+  margin: 16px;
+  border-radius: var(--radius-md);
+  background: #000000;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 500px;
+  padding: 12px;
+}
+
+.image-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 480px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+}
+
+.document-image {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+/* Laser Scanner Beam */
+.laser-scan-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, transparent 0%, #ffffff 50%, transparent 100%);
+  box-shadow: 0 0 20px #ffffff, 0 0 35px rgba(255, 255, 255, 0.8);
+  display: none;
+  z-index: 10;
+}
+
+.laser-scan-beam.scanning {
+  display: block;
+  animation: laserScan 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes laserScan {
+  0% { top: 0%; opacity: 0.3; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 98%; opacity: 0.3; }
+}
+
+
+/* Panel 2 & 3: Output Streams & Visualization Layout */
+.output-body {
+  flex: 1;
+  padding: 18px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #e4e4e7;
+  overflow-y: auto;
+  max-height: 520px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+  scroll-behavior: auto;
+}
+
+/* Panel 3 Document Layout Visualizer Formatting */
+#visualizationContent h1, #visualizationContent h2, #visualizationContent h3 {
+  font-family: var(--font-heading);
+  color: #ffffff;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
+}
+
+#visualizationContent p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+#visualizationContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+  border: 1px solid var(--border-medium);
+}
+
+#visualizationContent th, #visualizationContent td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+#visualizationContent th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  color: #ffffff;
+}
+
+#visualizationContent tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#visualizationContent ul, #visualizationContent ol {
+  padding-left: 24px;
+  margin-bottom: 12px;
+}
+
+#visualizationContent img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 12px 0;
+  border: 1px solid var(--border-subtle);
+}
+
+.raw-code-stream {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e4e4e7;
+}
+
+.output-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.tab-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-color: var(--border-subtle);
+}
+
+.cursor-blink {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: #ffffff;
+  margin-left: 2px;
+  animation: cursorBlink 1s infinite;
+  vertical-align: middle;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.metrics-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Bounding Box Overlay Styles */
+.bbox-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.bbox-box {
+  position: absolute;
+  border: 1.5px dashed rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+  animation: bboxFadeIn 0.3s ease forwards;
+  opacity: 0;
+}
+
+.bbox-box.heading {
+  border-color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
+}
+
+.bbox-box.table {
+  border-style: solid;
+  background: rgba(255, 200, 100, 0.1);
+  border-color: rgba(255, 200, 100, 0.6);
+  box-shadow: 0 0 12px rgba(255, 200, 100, 0.3);
+}
+
+.bbox-box.paragraph {
+  border-color: rgba(120, 180, 255, 0.7);
+  background: rgba(120, 180, 255, 0.06);
+  box-shadow: 0 0 10px rgba(120, 180, 255, 0.25);
+}
+
+.bbox-box.footer {
+  border-style: dotted;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+}
+
+.bbox-label {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.bbox-box:hover .bbox-label {
+  opacity: 1;
+}
+
+@keyframes bboxFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Layout Visualization — Faithful Document Reconstruction */
+.viz-page-canvas {
+  font-family: serif;
+  container-type: size;  /* enables cqh units for font scaling */
+  container-name: page;
+}
+
+/* Prevent text selection artifacts on the reconstruction canvas */
+.viz-page-canvas > div {
+  user-select: text;
+}
+
+.viz-page-canvas table {
+  border-spacing: 0;
+}
+
+.layout-table::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.layout-table::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+}
+
+.layout-table::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+}
+
+.layout-table::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.5);
+}
+
+/* ================================================================
+   Panel Visibility Toggle System
+   ================================================================ */
+
+/* 3-Dot Menu Button */
+.panel-menu-wrapper {
+  position: relative;
+}
+
+.panel-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panel-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-medium);
+  color: #ffffff;
+}
+
+/* 3-Dot Menu Dropdown */
+.panel-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: #0f0f14;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 100;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  animation: panelMenuFadeIn 0.15s ease;
+}
+
+@keyframes panelMenuFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.panel-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e4e4e7;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.panel-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.panel-menu-item i {
+  color: var(--text-secondary);
+}
+
+/* Hide Screen Toolbar Dropdown */
+.panel-visibility-wrapper {
+  position: relative;
+}
+
+.hide-screen-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 260px;
+  background: #0f0f14;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 200;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9);
+  animation: panelMenuFadeIn 0.15s ease;
+}
+
+.hide-dropdown-title {
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 4px 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
+}
+
+.hidden-screens-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hidden-empty-state {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 14px 8px;
+}
+
+.hidden-screen-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.hidden-screen-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.hidden-screen-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #e4e4e7;
+}
+
+.hidden-screen-name i {
+  color: var(--text-secondary);
+}
+
+.hidden-screen-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hidden-screen-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+/* Dynamic Grid Column States */
+.ocr-3panel-grid.hide-ocr {
+  grid-template-columns: 32% 1fr;
+}
+
+.ocr-3panel-grid.hide-visualization {
+  grid-template-columns: 32% 1fr;
+}
+
+.ocr-3panel-grid.hide-ocr.hide-visualization {
+  grid-template-columns: 1fr;
+}
+
+.ocr-3panel-grid .workspace-panel.panel-hidden {
+  display: none;
+}

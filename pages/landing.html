@@ -1,0 +1,261 @@
+<main id="landingView" class="page-view active">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-tag">
+      <i data-lucide="globe" style="width:14px;height:14px;"></i> English Language OCR Suite
+    </div>
+    <h1 class="hero-title">HorizonOCR Works</h1>
+    <p class="hero-subtitle">
+      High-throughput, one-shot long-horizon document parsing engine. Optimized for English technical papers, multi-page PDFs, complex forms, tables, and LaTeX mathematical formulas.
+    </p>
+
+    <div class="cta-group">
+      <button class="btn btn-primary" onclick="switchView('auth', 'register')" style="padding:14px 32px;font-size:15px;">
+        Get Started Free <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+      </button>
+      <button class="btn btn-secondary" onclick="handlePlaygroundNavigation()" style="padding:14px 28px;font-size:15px;">
+        <i data-lucide="play" style="width:14px;height:14px;"></i> Try Playground
+      </button>
+    </div>
+
+    <!-- Performance Metrics Ticker -->
+    <div class="hero-ticker-bar">
+      <div class="ticker-item">
+        <span class="ticker-val">32,768</span>
+        <span class="ticker-lbl">Context Window</span>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border-subtle);"></div>
+      <div class="ticker-item">
+        <span class="ticker-val">310.8 t/s</span>
+        <span class="ticker-lbl">Processing Speed</span>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border-subtle);"></div>
+      <div class="ticker-item">
+        <span class="ticker-val">99.4%</span>
+        <span class="ticker-lbl">English Accuracy</span>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border-subtle);"></div>
+      <div class="ticker-item">
+        <span class="ticker-val">&lt; 0.05s</span>
+        <span class="ticker-lbl">Decode Latency</span>
+      </div>
+    </div>
+
+    <!-- macOS App Window Showcase Frame -->
+    <div class="app-window-frame reveal-on-scroll">
+      <div class="window-header">
+        <div class="window-dots">
+          <div class="window-dot" style="background:#ff5f56;"></div>
+          <div class="window-dot" style="background:#ffbd2e;"></div>
+          <div class="window-dot" style="background:#27c93f;"></div>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-left:12px;">HorizonOCR Workspace · 3-Panel Visual Stream</span>
+        </div>
+
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);background:var(--bg-tertiary);padding:3px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+          English OCR Engine v2.0
+        </div>
+      </div>
+      
+      <video src="assets/Process.mp4" autoplay loop muted playsinline class="showcase-img" style="width:100%;height:auto;display:block;object-fit:cover;"></video>
+    </div>
+  </section>
+
+  <!-- SECTION: VISUAL SYSTEM PROCESS FLOW DIAGRAM -->
+  <section id="howitworks" style="padding: 40px 0 60px;">
+    <div class="section-header reveal-on-scroll">
+      <div class="section-tag">System Architecture & Process Flow</div>
+      <h2 class="section-title">How HorizonOCR Processes Documents</h2>
+      <p style="color:var(--text-secondary);font-size:15px;max-width:640px;margin:12px auto 0;line-height:1.6;">
+        An end-to-end pipeline that transforms raw English PDFs and image documents into structured Markdown, LaTeX formulas, and database-stored image BLOBs in real time.
+      </p>
+    </div>
+
+    <!-- Visual Pipeline Flow Diagram Container -->
+    <div class="pipeline-diagram-container reveal-on-scroll">
+      <div class="pipeline-flow-grid">
+
+        <!-- Stage 1 -->
+        <div class="pipeline-stage-card">
+          <div class="stage-badge">STAGE 01</div>
+          <div class="stage-icon-wrap">
+            <i data-lucide="file-up" style="width:22px;height:22px;color:#ffffff;"></i>
+          </div>
+          <h3 class="stage-title">Document Ingestion</h3>
+          <p class="stage-desc">
+            High-DPI rasterization and multi-format scanning for English PDFs, PNG, JPG, or WEBP up to 50MB.
+          </p>
+          <div class="stage-tech-tags">
+            <span class="tech-chip">PyMuPDF Dict</span>
+            <span class="tech-chip">Multi-Page Scan</span>
+          </div>
+        </div>
+
+        <!-- Connector Arrow -->
+        <div class="pipeline-connector">➜</div>
+
+        <!-- Stage 2 -->
+        <div class="pipeline-stage-card">
+          <div class="stage-badge">STAGE 02</div>
+          <div class="stage-icon-wrap">
+            <i data-lucide="scan-line" style="width:22px;height:22px;color:#ffffff;"></i>
+          </div>
+          <h3 class="stage-title">Layout & Formula Detection</h3>
+          <p class="stage-desc">
+            Detects structural table grids (`find_tables`), list hierarchies, and converts math into LaTeX `$$ ... $$`.
+          </p>
+          <div class="stage-tech-tags">
+            <span class="tech-chip">GFM Tables</span>
+            <span class="tech-chip">LaTeX Math</span>
+          </div>
+        </div>
+
+        <!-- Connector Arrow -->
+        <div class="pipeline-connector">➜</div>
+
+        <!-- Stage 3 -->
+        <div class="pipeline-stage-card">
+          <div class="stage-badge">STAGE 03</div>
+          <div class="stage-icon-wrap">
+            <i data-lucide="database" style="width:22px;height:22px;color:#ffffff;"></i>
+          </div>
+          <h3 class="stage-title">SQLite Image BLOB Storage</h3>
+          <p class="stage-desc">
+            Converts JPX/CMYK images to PNG, storing binary image BLOBs in `database.db` with user isolation (`user_id`).
+          </p>
+          <div class="stage-tech-tags">
+            <span class="tech-chip">database.db</span>
+            <span class="tech-chip">User Isolated</span>
+          </div>
+        </div>
+
+        <!-- Connector Arrow -->
+        <div class="pipeline-connector">➜</div>
+
+        <!-- Stage 4 -->
+        <div class="pipeline-stage-card">
+          <div class="stage-badge">STAGE 04</div>
+          <div class="stage-icon-wrap">
+            <i data-lucide="layout" style="width:22px;height:22px;color:#ffffff;"></i>
+          </div>
+          <h3 class="stage-title">3-Panel Visual Stream</h3>
+          <p class="stage-desc">
+            Streams raw text typewriter output, renders KaTeX formulas, and synchronizes 60fps scrolling with 0ms delay.
+          </p>
+          <div class="stage-tech-tags">
+            <span class="tech-chip">KaTeX Math</span>
+            <span class="tech-chip">0ms Sync Scroll</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: ARCHITECTURE FEATURES -->
+  <section id="features" style="padding: 40px 0;">
+    <div class="section-header reveal-on-scroll">
+      <div class="section-tag">Core Technology</div>
+      <h2 class="section-title">Architectural Highlights</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal-on-scroll">
+        <div class="feature-icon">
+          <i data-lucide="layers" style="width:22px;height:22px;color:#ffffff;"></i>
+        </div>
+        <h3 class="feature-title">One-Shot Long Horizon</h3>
+        <p class="feature-desc">
+          Maintains context coherence across 32,768 tokens, rendering multi-page PDFs directly into continuous Markdown structure.
+        </p>
+      </div>
+
+      <div class="feature-card reveal-on-scroll">
+        <div class="feature-icon">
+          <i data-lucide="zap" style="width:22px;height:22px;color:#ffffff;"></i>
+        </div>
+        <h3 class="feature-title">SGLang & FlashAttention-3</h3>
+        <p class="feature-desc">
+          Leverages custom logit processors (`DeepseekOCRNoRepeatNGramLogitProcessor`) to prevent loop repeating in dense OCR tasks.
+        </p>
+      </div>
+
+      <div class="feature-card reveal-on-scroll">
+        <div class="feature-icon">
+          <i data-lucide="grid" style="width:22px;height:22px;color:#ffffff;"></i>
+        </div>
+        <h3 class="feature-title">Gundam & Base Crop Tiling</h3>
+        <p class="feature-desc">
+          Dynamic crop tiling at 1024 base resolution with 640 sub-tiles for detailed table schemas and handwritten math formulas.
+        </p>
+      </div>
+
+      <div class="feature-card reveal-on-scroll">
+        <div class="feature-icon">
+          <i data-lucide="shield-check" style="width:22px;height:22px;color:#ffffff;"></i>
+        </div>
+        <h3 class="feature-title">Secure SQLite Database</h3>
+        <p class="feature-desc">
+          Persists user profiles and document history securely with hashed passwords and session management.
+        </p>
+      </div>
+
+      <div class="feature-card reveal-on-scroll">
+        <div class="feature-icon">
+          <i data-lucide="download" style="width:22px;height:22px;color:#ffffff;"></i>
+        </div>
+        <h3 class="feature-title">Multi-Format Structured Export</h3>
+        <p class="feature-desc">
+          Export parsed document outputs directly as Markdown (.md), raw code, or structured AST JSON.
+        </p>
+      </div>
+
+      <div class="feature-card reveal-on-scroll">
+        <div class="feature-icon">
+          <i data-lucide="activity" style="width:22px;height:22px;color:#ffffff;"></i>
+        </div>
+        <h3 class="feature-title">Real-Time 3-Panel Workspace</h3>
+        <p class="feature-desc">
+          Monitor original document preview, raw text streaming, and rendered layout visualization simultaneously.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: BENCHMARKS -->
+  <section id="benchmarks" style="padding: 40px 0;">
+    <div class="section-header reveal-on-scroll">
+      <div class="section-tag">Performance Validation</div>
+      <h2 class="section-title">Benchmark Comparison</h2>
+    </div>
+
+    <div class="benchmark-card reveal-on-scroll">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Model Name</th>
+            <th>DocVQA (ANLS)</th>
+            <th>ChartQA (Acc)</th>
+            <th>System Speed (TPS)</th>
+            <th>KV Cache Memory</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;">DeepSeek-OCR</td>
+            <td>88.4%</td>
+            <td>84.1%</td>
+            <td>142.5 tokens/s</td>
+            <td>Linear Growth ($O(N)$)</td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;color:#ffffff;">Unlimited-OCR (Ours)</td>
+            <td style="font-weight:700;color:#ffffff;">94.7%</td>
+            <td style="font-weight:700;color:#ffffff;">91.2%</td>
+            <td style="font-weight:700;color:#ffffff;">310.8 tokens/s</td>
+            <td style="font-weight:700;color:#ffffff;">Constant Memory ($O(1)$)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>

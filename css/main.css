@@ -1,0 +1,281 @@
+/* 
+  ================================================================
+  UNLIMITED OCR - Main Design System & CSS Variables
+  ================================================================
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Ultra-Monochrome Black & White Palette */
+  --bg-primary: #050507;
+  --bg-secondary: #0d0d10;
+  --bg-tertiary: #16161a;
+  --bg-card: rgba(18, 18, 22, 0.75);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.18);
+  --border-active: #ffffff;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  --accent-white: #ffffff;
+  --accent-glow: rgba(255, 255, 255, 0.2);
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global Resets */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 65%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* Ambient Glow Background */
+.ambient-glow {
+  position: fixed;
+  top: -160px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 750px;
+  height: 380px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.1) 0%, rgba(0,0,0,0) 70%);
+  filter: blur(75px);
+  pointer-events: none;
+  z-index: 0;
+  animation: pulseGlow 8s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { opacity: 0.5; transform: translateX(-50%) scale(0.95); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+/* Button Component Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  border: none;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--text-primary);
+  color: #000000;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:hover {
+  background: #e4e4e7;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(255, 255, 255, 0.35);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+}
+
+.btn-secondary:hover {
+  border-color: var(--border-active);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* SPA Page View Transitions */
+.page-view {
+  display: none;
+  animation: fadeIn 0.4s ease forwards;
+  padding-bottom: 60px;
+}
+
+.page-view.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Error Notification Banner */
+.error-notification {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 400px;
+  max-width: 600px;
+  background: rgba(239, 68, 68, 0.95);
+  border: 1px solid rgba(239, 68, 68, 1);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4);
+  z-index: 9999;
+  animation: slideInDown 0.3s ease forwards;
+  backdrop-filter: blur(10px);
+}
+
+.error-notification.success {
+  background: rgba(34, 197, 94, 0.95);
+  border-color: rgba(34, 197, 94, 1);
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.4);
+}
+
+.error-notification.warning {
+  background: rgba(251, 191, 36, 0.95);
+  border-color: rgba(251, 191, 36, 1);
+  box-shadow: 0 8px 32px rgba(251, 191, 36, 0.4);
+  color: #000000;
+}
+
+.error-notification-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #ffffff;
+}
+
+.error-notification.warning .error-notification-icon {
+  color: #000000;
+}
+
+.error-notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-notification-title {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.error-notification.warning .error-notification-title {
+  color: #000000;
+}
+
+.error-notification-message {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.error-notification.warning .error-notification-message {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.error-notification-close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  color: #ffffff;
+}
+
+.error-notification.warning .error-notification-close {
+  background: rgba(0, 0, 0, 0.15);
+  color: #000000;
+}
+
+.error-notification-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes slideOutUp {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+}
+
+@media (max-width: 768px) {
+  .error-notification {
+    min-width: auto;
+    max-width: calc(100vw - 32px);
+    top: 70px;
+  }
+}

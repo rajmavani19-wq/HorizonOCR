@@ -1,0 +1,31 @@
+<header class="navbar">
+  <div class="brand-logo" onclick="switchView('landing')" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+    <img src="assets/HorizonOCR.png" alt="HorizonOCR Logo" style="height:32px;width:auto;object-fit:contain;" />
+    <div class="brand-title" style="font-weight:700;letter-spacing:-0.5px;">Horizon<span>OCR</span></div>
+  </div>
+
+  <nav class="nav-links-center"></nav>
+
+  <div class="nav-right">
+    <div class="status-chip" style="display:none;" id="statusChipNav">
+      <div class="status-dot"></div>
+      <span id="systemStatus">Engine Ready</span>
+    </div>
+
+    <!-- Guest Nav -->
+    <div id="guestNav">
+      <button class="btn btn-secondary" onclick="switchView('auth', 'login')">Sign In</button>
+      <button class="btn btn-primary" onclick="switchView('auth', 'register')">Get Started</button>
+    </div>
+
+    <!-- Authenticated User Nav -->
+    <div id="userNav" style="display:none;" class="nav-right">
+      <div class="user-profile-badge">
+        <i data-lucide="user" style="width:14px;height:14px;"></i>
+        <span id="userNameLabel">User</span>
+      </div>
+      <button class="btn btn-secondary" onclick="switchView('upload')">Dashboard</button>
+      <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
+    </div>
+  </div>
+</header>

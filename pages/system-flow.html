@@ -1,0 +1,219 @@
+<main id="systemFlowView" class="page-view">
+  <div class="page-container-wide">
+    <div class="page-header">
+      <div class="page-tag">
+        <i data-lucide="layout" style="width:13px;height:13px;"></i> Frontend User Experience & Visual Flow
+      </div>
+      <h1 class="page-title-large">HorizonOCR Frontend System Flow</h1>
+      <p class="page-subtitle">
+        A step-by-step visual breakdown explaining the complete user journey across the HorizonOCR single-page application—from initial website landing to 3-panel workspace streaming, KaTeX formula rendering, and 60fps lockstep scroll synchronization.
+      </p>
+    </div>
+
+    <!-- Visual Interactive Flow Diagram -->
+    <div class="flow-diagram-container">
+
+      <!-- Stage 01 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 01 • LANDING PAGE ENTRY</span>
+          <span class="flow-step-num">01</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="globe" style="width:20px;height:20px;"></i> Website Entry & SPA Router Handshake
+        </h3>
+        <p class="flow-step-desc">
+          When the user opens the web application, the lightweight Vanilla JS single-page router initializes instantly. It renders the modern monochrome landing page, triggers Lucide vector icons, and configures navigation routes without reloading the browser.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">Vanilla JS SPA Router</span>
+          <span class="tech-chip">Lucide SVG Icons</span>
+          <span class="tech-chip">Glassmorphic CSS System</span>
+          <span class="tech-chip">Space Grotesk Typography</span>
+        </div>
+      </div>
+
+      <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+      <!-- Stage 02 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 02 • USER AUTHENTICATION</span>
+          <span class="flow-step-num">02</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="user-check" style="width:20px;height:20px;"></i> Registration Guard & Login Navigation
+        </h3>
+        <p class="flow-step-desc">
+          Unauthenticated visitors clicking "Try Playground" are guided to the Registration view (<code>authView</code>). Upon entering credentials, client-side input validation runs, switching the UI state to authenticated mode and unlocking the user workspace header.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">Client Auth Guard</span>
+          <span class="tech-chip">Form Validation</span>
+          <span class="tech-chip">Dynamic Navbar Switcher</span>
+          <span class="tech-chip">User Badge UI</span>
+        </div>
+      </div>
+
+      <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+      <!-- Stage 03 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 03 • DOCUMENT FILE INTAKE</span>
+          <span class="flow-step-num">03</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="upload-cloud" style="width:20px;height:20px;"></i> Interactive Drag & Drop Upload Zone
+        </h3>
+        <p class="flow-step-desc">
+          On the Dashboard (<code>uploadView</code>), users drag and drop PDF, PNG, JPG, or WEBP document files. The frontend validates format integrity, checks the 50MB file size boundary, counts PDF pages, and triggers smooth drop animations.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">HTML5 Drag & Drop</span>
+          <span class="tech-chip">File Format Validation</span>
+          <span class="tech-chip">50MB Client Cap</span>
+          <span class="tech-chip">Drop Animations</span>
+        </div>
+      </div>
+
+      <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+      <!-- Stage 04 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 04 • 3-PANEL WORKSPACE LAUNCH</span>
+          <span class="flow-step-num">04</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="columns" style="width:20px;height:20px;"></i> 3-Panel Visual Workspace & Canvas Renderer
+        </h3>
+        <p class="flow-step-desc">
+          The app transitions to the Workspace (<code>ocrView</code>). Panel 1 renders the PDF page canvas via PDF.js with laser scan animation beams and spatial bounding box overlays representing detected document regions.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">PDF.js Canvas</span>
+          <span class="tech-chip">Laser Scan Beam</span>
+          <span class="tech-chip">Spatial Overlays</span>
+          <span class="tech-chip">Page Controls & Zoom</span>
+        </div>
+      </div>
+
+      <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+      <!-- Stage 05 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 05 • STREAMING & MARKDOWN PARSING</span>
+          <span class="flow-step-num">05</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="file-code" style="width:20px;height:20px;"></i> Real-Time Typewriter Cadence & KaTeX Rendering
+        </h3>
+        <p class="flow-step-desc">
+          Panel 2 streams raw OCR text progressively according to user speed preferences (Slow/Medium/Fast). Simultaneously, Panel 3 parses Markdown structure via <code>marked.js</code>, renders LaTeX math formulas using <code>KaTeX</code> (<code>$$ ... $$</code>), and displays formatted image tags.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">Typewriter Cadence Engine</span>
+          <span class="tech-chip">marked.js Parser</span>
+          <span class="tech-chip">KaTeX Math Formula Vector</span>
+          <span class="tech-chip">AST View Switcher</span>
+        </div>
+      </div>
+
+      <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+      <!-- Stage 06 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 06 • LOCKSTEP SCROLL SYNC</span>
+          <span class="flow-step-num">06</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="zap" style="width:20px;height:20px;"></i> 0ms 60fps Lockstep Synchronized Scrolling
+        </h3>
+        <p class="flow-step-desc">
+          Panel 2 (Raw OCR Stream) and Panel 3 (Layout Visualization) execute a frame-locked <code>requestAnimationFrame()</code> scroll algorithm. Utilizing <code>scroll-behavior: auto</code>, both panels maintain 1:1 proportional scroll alignment with zero UI delay.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">0ms Auto Scroll</span>
+          <span class="tech-chip">requestAnimationFrame Sync</span>
+          <span class="tech-chip">Bidirectional Scroll Ratio</span>
+          <span class="tech-chip">60fps Lockstep Alignment</span>
+        </div>
+      </div>
+
+      <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+      <!-- Stage 07 -->
+      <div class="flow-step-card">
+        <div class="flow-step-header">
+          <span class="flow-stage-badge">STAGE 07 • HISTORY EXPORT & LOGOUT</span>
+          <span class="flow-step-num">07</span>
+        </div>
+        <h3 class="flow-step-title">
+          <i data-lucide="log-out" style="width:20px;height:20px;"></i> Document History Review, Export & Logout
+        </h3>
+        <p class="flow-step-desc">
+          Users can inspect past document parsing runs in the Dashboard history table, copy output text, or export structured <code>.md</code> files. Clicking "Logout" clears active UI user state and smoothly redirects back to guest mode.
+        </p>
+        <div class="tech-chip-list">
+          <span class="tech-chip">Dashboard History UI</span>
+          <span class="tech-chip">One-Click Text Copy</span>
+          <span class="tech-chip">Markdown .md Export</span>
+          <span class="tech-chip">Guest Reset Router</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Frontend UI Architecture Breakdown Section -->
+    <div class="content-card-box">
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="palette" style="width:20px;height:20px;"></i> Frontend Technology & Design System Breakdown
+        </h2>
+        <p class="policy-text">
+          The HorizonOCR frontend interface was built prioritizing zero-dependency performance, rich aesthetics, and sub-millisecond view transitions:
+        </p>
+
+        <table class="tech-summary-table">
+          <thead>
+            <tr>
+              <th>Frontend Component</th>
+              <th>Technologies & Tools</th>
+              <th>Interface Function & User Experience</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPA View Router</strong></td>
+              <td>Vanilla JavaScript</td>
+              <td>Sub-millisecond single-page view transitions between Landing, Auth, Dashboard, Workspace, Overview, System Flow, and Blog views.</td>
+            </tr>
+            <tr>
+              <td><strong>Design System & Layout</strong></td>
+              <td>Vanilla CSS & HSL Tokens</td>
+              <td>Custom ultra-monochrome palette (<code>#050507</code>), Space Grotesk typography, glassmorphism cards, and responsive grids.</td>
+            </tr>
+            <tr>
+              <td><strong>Document Viewport</strong></td>
+              <td>PDF.js Canvas & Lucide Icons</td>
+              <td>Client-side vector PDF page rendering, page navigation, laser scanning animation beam, and spatial bounding overlays.</td>
+            </tr>
+            <tr>
+              <td><strong>Markdown & Math Engine</strong></td>
+              <td><code>marked.js</code> & <code>KaTeX</code></td>
+              <td>Live GitHub-Flavored Markdown table parsing and instant vector rendering of LaTeX mathematical equations (<code>$$ ... $$</code>).</td>
+            </tr>
+            <tr>
+              <td><strong>Synchronized Scroll Engine</strong></td>
+              <td><code>requestAnimationFrame()</code> & CSS <code>auto</code></td>
+              <td>Frame-locked proportional scroll ratio alignment keeping Panel 2 and Panel 3 synchronized in 60fps lockstep.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>

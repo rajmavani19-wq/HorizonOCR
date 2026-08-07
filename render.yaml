@@ -1,0 +1,31 @@
+# Private HorizonOCR service configuration.
+# Use a paid persistent-disk plan for any live deployment; SQLite requires durable storage.
+services:
+  - type: web
+    name: horizonocr
+    runtime: python
+    plan: starter
+    healthCheckPath: /api/health
+    buildCommand: |
+      apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-eng
+      pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn --config gunicorn.conf.py server:app
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATA_DIR
+        value: /opt/render/data
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: GUNICORN_WORKERS
+        value: "1"
+      - key: GUNICORN_THREADS
+        value: "4"
+    disk:
+      name: horizonocr-data
+      mountPath: /opt/render/data
+      sizeGB: 10

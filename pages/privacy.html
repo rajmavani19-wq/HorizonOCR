@@ -1,0 +1,134 @@
+<main id="privacyView" class="page-view">
+  <div class="page-container-wide">
+    <div class="page-header">
+      <div class="page-tag">
+        <i data-lucide="shield-check" style="width:13px;height:13px;"></i> Security, Data Rights & Legal Privacy
+      </div>
+      <h1 class="page-title-large">Privacy Policy</h1>
+      <p class="page-subtitle">
+        Comprehensive legal privacy policy detailing data protection, multi-tenant SQLite database isolation, user ownership rights, and full development methodology.
+      </p>
+    </div>
+
+    <!-- Privacy Content Box -->
+    <div class="content-card-box">
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="lock" style="width:20px;height:20px;"></i> 1. Multi-Tenant Document Data Isolation & Ownership
+        </h2>
+        <p class="policy-text">
+          HorizonOCR enforces strict account-scoped document data isolation. Every document uploaded to our processing pipeline—including multi-page PDFs, PNGs, JPGs, WEBP files, extracted Markdown text, and binary image BLOBs—is strictly bound to your authenticated user account ID (<code>user_id</code>).
+        </p>
+        <p class="policy-text">
+          You retain 100% intellectual property ownership over all uploaded source documents and generated deliverables. Other registered users cannot access, view, or query your document history, extracted tables, or stored images.
+        </p>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="database" style="width:20px;height:20px;"></i> 2. SQLite Binary BLOB Storage & Image Security
+        </h2>
+        <p class="policy-text">
+          User profiles, password hashes, processing timing metrics, document metadata, and extracted graphics are stored in a secure SQLite database (<code>database.db</code>):
+        </p>
+        <ul class="policy-list">
+          <li><strong>Binary BLOB Persistence:</strong> Embedded PDF images and diagrams are converted to web-standard 24-bit PNG format and stored as binary <code>BLOB</code> data inside <code>document_images</code>.</li>
+          <li><strong>Session Scoped Serving:</strong> Image assets are served via <code>GET /api/images/&lt;img_name&gt;</code>, which validates session ownership to block cross-account data leaks.</li>
+          <li><strong>CMYK Color Normalization:</strong> Strips print color profiles and converts complex CMYK/JPX graphics to RGB PNGs using Pillow (<code>PIL.Image</code>) before persistence.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="key" style="width:20px;height:20px;"></i> 3. Password Hashing & Session Cookie Security
+        </h2>
+        <p class="policy-text">
+          User credentials and session state are secured using industry-standard cryptography:
+        </p>
+        <ul class="policy-list">
+          <li><strong>Cryptographic Password Hashing:</strong> User passwords are hashed using PBKDF2 with SHA-256 before storage in SQLite <code>users</code>.</li>
+          <li><strong>Encrypted HTTP-Only Session Cookies:</strong> Authentication state is managed via encrypted HTTP-only session cookies (<code>session['user_id']</code>).</li>
+          <li><strong>Zero Third-Party Trackers:</strong> We do NOT use third-party tracking cookies, Google Analytics scripts, or cross-site behavioral trackers.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="trash-2" style="width:20px;height:20px;"></i> 4. Temporary File Scrubbing & User Data Deletion
+        </h2>
+        <p class="policy-text">
+          Temporary file caches generated during PDF rasterization are immediately scrubbed from server memory upon completion of the OCR pipeline.
+        </p>
+        <p class="policy-text">
+          You maintain full control over your document history. You may delete past document records, clear cached outputs, or purge your account data at any time via your Dashboard profile settings.
+        </p>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="eye-off" style="width:20px;height:20px;"></i> 5. Anti-Selling & Non-Training Guarantee
+        </h2>
+        <p class="policy-text">
+          We strictly pledge that your uploaded documents, extracted Markdown text, and mathematical formulas will NEVER be sold, leased, or shared with third-party data brokers or advertising networks. Furthermore, your data is never used to train third-party AI models.
+        </p>
+      </div>
+
+      <!-- Development Process & Technology Stack Section -->
+      <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
+        <h2 class="policy-h2">
+          <i data-lucide="wrench" style="width:20px;height:20px;"></i> 6. Technical System Architecture & Development Disclosure
+        </h2>
+        <p class="policy-text">
+          HorizonOCR was engineered from scratch prioritizing sub-millisecond execution, robust data isolation, and high-throughput document intelligence:
+        </p>
+
+        <table class="tech-summary-table">
+          <thead>
+            <tr>
+              <th>Layer / Component</th>
+              <th>Technologies & Tools</th>
+              <th>Technical Function & Implementation Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Backend REST API</strong></td>
+              <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
+              <td>Delivers session authentication, upload endpoints, rate limiting, and OCR pipeline orchestration.</td>
+            </tr>
+            <tr>
+              <td><strong>PDF & Vector Engine</strong></td>
+              <td>PyMuPDF (<code>fitz</code>)</td>
+              <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
+            </tr>
+            <tr>
+              <td><strong>OCR Fallback Engine</strong></td>
+              <td>RapidOCR ONNX Runtime & Tesseract</td>
+              <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+            </tr>
+            <tr>
+              <td><strong>Database & Security</strong></td>
+              <td>SQLite 3 (<code>database.db</code>)</td>
+              <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
+            </tr>
+            <tr>
+              <td><strong>Frontend SPA Framework</strong></td>
+              <td>Vanilla JS Router & Custom Vanilla CSS</td>
+              <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
+            </tr>
+            <tr>
+              <td><strong>Document Rendering</strong></td>
+              <td>PDF.js, <code>marked.js</code> & <code>KaTeX</code></td>
+              <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ul class="policy-list" style="margin-top:16px;">
+          <li><strong>0ms Lockstep Scroll Sync:</strong> Uses <code>scroll-behavior: auto</code> and <code>requestAnimationFrame()</code> ratio formulas to eliminate UI delay during rapid typewriter streaming.</li>
+          <li><strong>Custom Image Tag Pre-processing:</strong> Standardizes raw OCR output tags into <code>![Image(N) | name]</code> and dynamically converts them to authenticated API endpoints on the frontend.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>

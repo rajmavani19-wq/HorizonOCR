@@ -1,0 +1,137 @@
+<main id="termsView" class="page-view">
+  <div class="page-container-wide">
+    <div class="page-header">
+      <div class="page-tag">
+        <i data-lucide="file-text" style="width:13px;height:13px;"></i> Platform Terms, Usage & Legal Agreement
+      </div>
+      <h1 class="page-title-large">Terms of Service</h1>
+      <p class="page-subtitle">
+        Legal terms and operational conditions governing access to the HorizonOCR document parsing platform, single-page workspace, and API endpoints.
+      </p>
+    </div>
+
+    <!-- Terms Content Box -->
+    <div class="content-card-box">
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="check-circle" style="width:20px;height:20px;"></i> 1. Acceptance of Terms & Service Scope
+        </h2>
+        <p class="policy-text">
+          By accessing or using the HorizonOCR web application (<code>http://127.0.0.1:8080/</code>), services, or API endpoints, you agree to be bound by these Terms of Service. This agreement governs your use of the 3-panel OCR workspace, document upload pipeline, Markdown export tools, and account authentication services.
+        </p>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="user-check" style="width:20px;height:20px;"></i> 2. User Account Confidentiality & Security
+        </h2>
+        <p class="policy-text">
+          You are responsible for maintaining the confidentiality of your registered account credentials (username and password). All actions performed under your authenticated session are your sole responsibility.
+        </p>
+        <ul class="policy-list">
+          <li>Account credentials may not be shared, sold, or transferred to third parties.</li>
+          <li>Users must notify platform administrators immediately upon discovering any unauthorized session access.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="alert-triangle" style="width:20px;height:20px;"></i> 3. Acceptable Use Policy & Resource Limits
+        </h2>
+        <p class="policy-text">
+          HorizonOCR is provided for lawful document OCR, structural table extraction, and mathematical formula parsing. Users agree strictly NOT to:
+        </p>
+        <ul class="policy-list">
+          <li>Upload illegal, malicious, or harmful content or malware-embedded containers into the file intake pipeline.</li>
+          <li>Attempt to bypass multi-tenant security filters or query image BLOB assets belonging to other user accounts.</li>
+          <li>Execute automated scripts to overload or launch Denial-of-Service (DoS) attacks against our backend REST API endpoints.</li>
+          <li>Exceed system limits: max 50MB file size per upload, max 25 pages per PDF document, and supported file types (PDF, PNG, JPG, WEBP).</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="shield" style="width:20px;height:20px;"></i> 4. Intellectual Property & Export Rights
+        </h2>
+        <p class="policy-text">
+          You retain 100% ownership and intellectual property rights over all uploaded source documents and generated text deliverables (Markdown tables, KaTeX equations, AST JSON trees). HorizonOCR claims no ownership or license over your processed outputs.
+        </p>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="activity" style="width:20px;height:20px;"></i> 5. Service Availability, Performance SLA & Liability
+        </h2>
+        <p class="policy-text">
+          While we strive for high-throughput 310.8 t/s processing performance and 60fps lockstep scroll synchronization, HorizonOCR is provided on an "as is" and "as available" basis without implied warranties of uninterrupted uptime.
+        </p>
+      </div>
+
+      <div class="policy-section">
+        <h2 class="policy-h2">
+          <i data-lucide="x-circle" style="width:20px;height:20px;"></i> 6. Account Termination & Data Scrubbing
+        </h2>
+        <p class="policy-text">
+          You maintain the right to terminate your account and delete your document history at any time. HorizonOCR reserves the right to suspend or terminate accounts that violate acceptable use policies.
+        </p>
+      </div>
+
+      <!-- Development Process & Technology Stack Section -->
+      <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
+        <h2 class="policy-h2">
+          <i data-lucide="cpu" style="width:20px;height:20px;"></i> 7. System Development, Engineering Stack & Implementation Disclosure
+        </h2>
+        <p class="policy-text">
+          The HorizonOCR platform was engineered using a modular, decoupled architecture to ensure sub-millisecond view responsiveness and multi-tenant data safety:
+        </p>
+
+        <table class="tech-summary-table">
+          <thead>
+            <tr>
+              <th>System Area</th>
+              <th>Technologies & Tools</th>
+              <th>Operational Function & Implementation Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Backend REST API</strong></td>
+              <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
+              <td>Delivers session authentication, upload endpoints, file validation, rate limiting, and OCR pipeline orchestration.</td>
+            </tr>
+            <tr>
+              <td><strong>PDF & Vector Engine</strong></td>
+              <td>PyMuPDF (<code>fitz</code>)</td>
+              <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
+            </tr>
+            <tr>
+              <td><strong>OCR Fallback Engine</strong></td>
+              <td>RapidOCR ONNX Runtime & Tesseract</td>
+              <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+            </tr>
+            <tr>
+              <td><strong>Database Storage</strong></td>
+              <td>SQLite 3 (<code>database.db</code>)</td>
+              <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
+            </tr>
+            <tr>
+              <td><strong>Frontend SPA Framework</strong></td>
+              <td>Vanilla JS Router & Custom Vanilla CSS</td>
+              <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
+            </tr>
+            <tr>
+              <td><strong>Document Rendering</strong></td>
+              <td>PDF.js, <code>marked.js</code> & <code>KaTeX</code></td>
+              <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ul class="policy-list" style="margin-top:16px;">
+          <li><strong>0ms Lockstep Scroll Sync:</strong> Uses <code>scroll-behavior: auto</code> and <code>requestAnimationFrame()</code> ratio formulas to eliminate UI delay during rapid typewriter streaming.</li>
+          <li><strong>Binary BLOB Image Isolation:</strong> Extracted embedded PDF graphics are stored directly into SQLite database BLOB columns, preventing unauthorized filesystem URI access across user accounts.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>

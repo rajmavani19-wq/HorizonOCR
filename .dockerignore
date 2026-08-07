@@ -1,0 +1,33 @@
+# Version-control and local tooling
+.git/
+.gitignore
+.venv/
+venv/
+.vscode/
+.idea/
+
+# Private runtime data, caches, and temporary artifacts
+instance/
+models/
+log/
+temp/
+outputs/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Development-only probes and generated artifacts
+_probe*.py
+_probe*.png
+_scan_test.*
+temp_wttc_sample*.pdf
+Unlimited-OCR.pdf
+CODEBASE_ANALYSIS.md
+SETUP_COMMANDS.md

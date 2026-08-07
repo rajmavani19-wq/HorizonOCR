@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HorizonOCR — Private Document Intelligence</title>
+  <meta name="description" content="A secure, private document-intelligence workspace for extracting and reviewing structured content from PDFs and images.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Same-origin deployment is the production default. Set only by an approved build/runtime configuration for a split deployment. -->
+  <script>window.API_BASE = window.API_BASE || "";</script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked.js for Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- KaTeX for Mathematical Formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <!-- PDF.js for Client-Side PDF Preview Rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- Modular Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/ocr-workspace.css">
+  <link rel="stylesheet" href="css/extra-pages.css?v=2">
+</head>
+<body>
+
+  <!-- Ambient Glow Background Effect -->
+  <div class="ambient-glow"></div>
+
+  <!-- Component 1: Full-Width Navbar Header -->
+  <header class="navbar">
+    <div class="brand-logo" onclick="switchView('landing')" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+      <img src="assets/HorizonOCR.png" alt="HorizonOCR Logo" style="height:32px;width:auto;object-fit:contain;" />
+      <div class="brand-title" style="font-weight:700;letter-spacing:-0.5px;">Horizon<span>OCR</span></div>
+    </div>
+
+    <nav class="nav-links-center"></nav>
+
+    <div class="nav-right">
+      <div class="status-chip" style="display:none;" id="statusChipNav">
+        <div class="status-dot"></div>
+        <span id="systemStatus">Engine Ready</span>
+      </div>
+
+      <!-- Guest Nav -->
+      <div id="guestNav">
+        <button class="btn btn-secondary" onclick="switchView('auth', 'login')">Sign In</button>
+        <button class="btn btn-primary" onclick="switchView('auth', 'register')">Get Started</button>
+      </div>
+
+      <!-- Authenticated User Nav -->
+      <div id="userNav" style="display:none;" class="nav-right">
+        <div class="user-profile-badge">
+          <i data-lucide="user" style="width:14px;height:14px;"></i>
+          <span id="userNameLabel">User</span>
+        </div>
+        <button class="btn btn-secondary" onclick="switchView('upload')">Dashboard</button>
+        <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-container">
+
+    <!-- Page 1: Landing Page View -->
+    <main id="landingView" class="page-view active">
+      <section class="hero-section project-hero">
+        <div class="hero-tag">
+          <i data-lucide="sparkles" style="width:14px;height:14px;color:var(--text-primary);"></i> Next-Gen AI Vision & Document Intelligence
+        </div>
+        <p class="project-eyebrow">HorizonOCR / High-Performance Document Engine</p>
+        <h1 class="hero-title">Transform Documents Into<br><span>Structured Intelligence.</span></h1>
+        <p class="hero-subtitle">
+          HorizonOCR converts complex PDFs, multi-column tables, scanned receipts, and mathematical formulas into clean Markdown, LaTeX equations, and synchronized layout visualizations with speed and precision.
+        </p>
+
+        <div class="cta-group">
+          <button class="btn btn-primary" onclick="handlePlaygroundNavigation()" style="padding:14px 32px;font-size:15px;">
+            Open workspace <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+          </button>
+          <a class="btn btn-secondary" href="#build" style="padding:14px 28px;font-size:15px;">
+            <i data-lucide="braces" style="width:14px;height:14px;"></i> Explore architecture
+          </a>
+        </div>
+
+        <div class="project-proof-grid reveal-on-scroll" aria-label="Production service principles">
+          <div class="proof-item"><i data-lucide="shield-check"></i><span><strong>Authenticated access</strong><small>Session-scoped accounts with CSRF-protected actions</small></span></div>
+          <div class="proof-item"><i data-lucide="lock-keyhole"></i><span><strong>Private document scope</strong><small>History and extracted assets are isolated by account</small></span></div>
+          <div class="proof-item"><i data-lucide="file-check-2"></i><span><strong>Guarded processing</strong><small>Type, size, page-count, and image validation before extraction</small></span></div>
+          <div class="proof-item"><i data-lucide="heart-pulse"></i><span><strong>Operational readiness</strong><small>Health checks, structured logs, durable data, and HTTPS deployment</small></span></div>
+        </div>
+
+        <div class="app-window-frame reveal-on-scroll">
+          <div class="window-header">
+            <div class="window-dots">
+              <div class="window-dot" style="background:#ff5f56;"></div>
+              <div class="window-dot" style="background:#ffbd2e;"></div>
+              <div class="window-dot" style="background:#27c93f;"></div>
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-left:12px;">HorizonOCR Workspace · source / Markdown / layout</span>
+            </div>
+            <div class="window-build-chip">PRIVATE WORKSPACE · SECURE API</div>
+          </div>
+          <video src="assets/Process.mp4" autoplay loop muted playsinline class="showcase-img" style="width:100%;height:auto;display:block;object-fit:cover;"></video>
+          <div class="showcase-caption"><i data-lucide="info"></i> The interface is designed for review: inspect the original page alongside extracted content and its reconstructed layout.</div>
+        </div>
+      </section>
+
+      <section id="howitworks" class="landing-section">
+        <div class="section-header reveal-on-scroll">
+          <div class="section-tag">Designed for controlled processing</div>
+          <h2 class="section-title">One document, four protected stages.</h2>
+          <p class="section-intro">Each request is authenticated, verified, and bounded before document-native parsing or OCR begins. The resulting structure stays associated with the signed-in workspace for review and export.</p>
+        </div>
+
+        <div class="pipeline-diagram-container reveal-on-scroll">
+          <div class="pipeline-flow-grid">
+            <article class="pipeline-stage-card">
+              <div class="stage-badge">01 · INTAKE</div>
+              <div class="stage-icon-wrap"><i data-lucide="upload-cloud"></i></div>
+              <h3 class="stage-title">Authenticate & validate</h3>
+              <p class="stage-desc">The API verifies the active session and CSRF token, accepts only approved document formats, enforces configurable size and page limits, then uses an isolated temporary workspace.</p>
+              <div class="stage-tech-tags"><span class="tech-chip">Flask session</span><span class="tech-chip">CSRF</span><span class="tech-chip">Upload limits</span></div>
+            </article>
+            <div class="pipeline-connector"><i data-lucide="arrow-right"></i></div>
+            <article class="pipeline-stage-card">
+              <div class="stage-badge">02 · EXTRACT</div>
+              <div class="stage-icon-wrap"><i data-lucide="scan-search"></i></div>
+              <h3 class="stage-title">Extract with bounded resources</h3>
+              <p class="stage-desc">Validated PDFs are inspected through PyMuPDF dictionaries, tables, images, font metadata, and coordinates. Image files use an English OCR adapter with controlled fallback engines.</p>
+              <div class="stage-tech-tags"><span class="tech-chip">PyMuPDF</span><span class="tech-chip">EasyOCR</span><span class="tech-chip">RapidOCR</span></div>
+            </article>
+            <div class="pipeline-connector"><i data-lucide="arrow-right"></i></div>
+            <article class="pipeline-stage-card">
+              <div class="stage-badge">03 · STRUCTURE</div>
+              <div class="stage-icon-wrap"><i data-lucide="braces"></i></div>
+              <h3 class="stage-title">Structure safely</h3>
+              <p class="stage-desc">Heuristics classify headings, paragraphs, lists, footers, tables, and formulas; watermark artifacts are filtered; table cells are normalized into clean Markdown for controlled browser rendering.</p>
+              <div class="stage-tech-tags"><span class="tech-chip">Markdown</span><span class="tech-chip">Sanitized render</span><span class="tech-chip">BBoxes</span></div>
+            </article>
+            <div class="pipeline-connector"><i data-lucide="arrow-right"></i></div>
+            <article class="pipeline-stage-card">
+              <div class="stage-badge">04 · REVIEW</div>
+              <div class="stage-icon-wrap"><i data-lucide="panels-top-left"></i></div>
+              <h3 class="stage-title">Review in your workspace</h3>
+              <p class="stage-desc">The browser coordinates the document preview, extracted Markdown, and layout view. History and embedded assets are retrieved only through the authenticated account that created them.</p>
+              <div class="stage-tech-tags"><span class="tech-chip">PDF.js</span><span class="tech-chip">Private assets</span><span class="tech-chip">SQLite</span></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="build" class="landing-section build-section">
+        <div class="section-header reveal-on-scroll">
+          <div class="section-tag">Private production architecture</div>
+          <h2 class="section-title">Built for disciplined live operation.</h2>
+          <p class="section-intro">HorizonOCR combines a focused Python document service, a browser-native review workspace, and durable account-scoped storage. Production controls are applied at the request, session, data, and deployment layers.</p>
+        </div>
+
+        <div class="stack-layout reveal-on-scroll">
+          <div class="stack-rail" aria-label="Technology stack">
+            <div class="stack-group active"><span class="stack-index">01</span><div><strong>Private application shell</strong><small>HTML, modular CSS, vanilla JavaScript</small></div></div>
+            <div class="stack-group"><span class="stack-index">02</span><div><strong>Protected browser workspace</strong><small>PDF.js, sanitized Markdown, KaTeX, Lucide</small></div></div>
+            <div class="stack-group"><span class="stack-index">03</span><div><strong>Secure Python service</strong><small>Flask sessions, CSRF, Werkzeug, trusted proxy controls</small></div></div>
+            <div class="stack-group"><span class="stack-index">04</span><div><strong>Guarded document processing</strong><small>PyMuPDF, OCR adapters, Pillow validation, limits</small></div></div>
+            <div class="stack-group"><span class="stack-index">05</span><div><strong>Durable delivery</strong><small>SQLite volume, Gunicorn, Docker, health checks</small></div></div>
+          </div>
+          <div class="stack-detail-grid">
+            <article class="detail-card"><i data-lucide="monitor-smartphone"></i><h3>Private client workspace</h3><p>The framework-free SPA uses a lightweight router and dedicated controllers for authentication, uploads, history, and review. Browser requests include credentials and a session-bound CSRF token.</p><code>index.html · js/router.js · js/auth.js</code></article>
+            <article class="detail-card"><i data-lucide="file-search-2"></i><h3>Validated PDF extraction</h3><p>Before extraction, the service checks supported formats, file size, PDF page count, and image integrity. PyMuPDF then reads dictionaries, positions, fonts, images, and tables.</p><code>server.py · PyMuPDF · Pillow</code></article>
+            <article class="detail-card"><i data-lucide="scan-line"></i><h3>Controlled OCR routing</h3><p>For image content, an adapter selects available English OCR backends in priority order. Processing limits and isolated temporary workspaces prevent a document request from becoming a persistent server artifact.</p><code>ocr_engines.py · temp workspace cleanup</code></article>
+            <article class="detail-card"><i data-lucide="database-zap"></i><h3>Scoped persistent data</h3><p>SQLite stores account credentials, document history, metrics, and extracted images on a durable volume. Every history and image lookup is filtered by the authenticated account.</p><code>horizonocr.db · account-scoped queries</code></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-section">
+        <div class="section-header reveal-on-scroll">
+          <div class="section-tag">Live-service controls</div>
+          <h2 class="section-title">Production safeguards where they matter.</h2>
+        </div>
+        <div class="features-grid engineering-grid">
+          <article class="feature-card reveal-on-scroll"><div class="feature-icon"><i data-lucide="badge-check"></i></div><h3 class="feature-title">Request validation</h3><p class="feature-desc">The service accepts only approved file extensions, checks file size before extraction, verifies PDF and image integrity, and limits page count and image pixels to keep synchronous processing predictable.</p></article>
+          <article class="feature-card reveal-on-scroll"><div class="feature-icon"><i data-lucide="key-round"></i></div><h3 class="feature-title">Session protection</h3><p class="feature-desc">Password hashes are handled by Werkzeug. Session cookies are HTTP-only and secure in production; every state-changing API request requires a verified CSRF token and allowed origin.</p></article>
+          <article class="feature-card reveal-on-scroll"><div class="feature-icon"><i data-lucide="folders"></i></div><h3 class="feature-title">Account isolation</h3><p class="feature-desc">Documents and extracted image assets are stored and retrieved through account-scoped database queries. A signed-in user cannot retrieve another workspace’s private artifacts.</p></article>
+          <article class="feature-card reveal-on-scroll"><div class="feature-icon"><i data-lucide="shield-alert"></i></div><h3 class="feature-title">Browser-safe output</h3><p class="feature-desc">Rendered Markdown is sanitized before insertion into the page, while restrictive response headers limit framing, unsafe content types, browser permissions, and unexpected external connections.</p></article>
+          <article class="feature-card reveal-on-scroll"><div class="feature-icon"><i data-lucide="gauge"></i></div><h3 class="feature-title">Abuse & resource controls</h3><p class="feature-desc">Sensitive endpoints carry request limits and document processing runs in an isolated temporary directory that is removed after every request. An edge rate limiter remains recommended for multi-instance protection.</p></article>
+          <article class="feature-card reveal-on-scroll"><div class="feature-icon"><i data-lucide="server-cog"></i></div><h3 class="feature-title">Deployable operations</h3><p class="feature-desc">The deployment package includes non-root containers, a health endpoint, Gunicorn configuration, persistent data-volume support, structured logs, source-control exclusions, and environment templates.</p></article>
+        </div>
+      </section>
+
+      <section class="landing-section honesty-section reveal-on-scroll">
+        <div><div class="section-tag">Project transparency</div><h2>Clear about the current architecture.</h2></div>
+        <div class="honesty-copy"><p>HorizonOCR supports two complementary paths: the included web API focuses on fast document-native parsing and configurable OCR fallbacks, while the repository also contains local and SGLang inference scripts for the Unlimited-OCR model path.</p><p>The workspace currently receives a completed API response and visualizes it progressively in the browser; this interface animation is not a server-sent token stream. Timing and token figures shown by the web API are calculated estimates based on its extraction run.</p></div>
+      </section>
+    </main>
+
+    <!-- Page 2: Auth View -->
+    <main id="authView" class="page-view">
+      <div class="auth-container">
+        <div class="auth-header">
+          <h2 id="authTitle" class="auth-title">Welcome Back</h2>
+          <p id="authSubtitle" class="auth-subtitle">Sign in to access document upload and OCR history</p>
+        </div>
+
+        <div id="authErrorAlert" class="error-alert"></div>
+
+        <form id="authForm" class="auth-form" onsubmit="handleAuthSubmit(event)">
+          <div class="form-group">
+            <label class="form-label" for="authUsername">Username or Email</label>
+            <input type="text" id="authUsername" class="form-input" placeholder="Enter your username or email" required />
+          </div>
+
+          <div id="emailGroup" class="form-group" style="display:none;">
+            <label class="form-label" for="authEmail">Email Address</label>
+            <input type="email" id="authEmail" class="form-input" placeholder="name@gmail.com" />
+            <small style="color:var(--text-muted);font-size:12px;">Only @gmail.com email addresses can register.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="authPassword">Password</label>
+            <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required />
+          </div>
+
+          <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width:100%;margin-top:10px;">
+            Sign In
+          </button>
+        </form>
+
+        <div class="auth-divider"><span>or continue with</span></div>
+
+        <button type="button" id="githubLoginBtn" class="btn github-btn" onclick="startGithubLogin()">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          Continue with GitHub
+        </button>
+
+        <div class="auth-footer">
+          <span id="authToggleText">Don't have an account?</span>
+          <span id="authToggleLink" class="auth-link" onclick="toggleAuthMode()">Register</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Page 3: Dashboard View -->
+    <main id="uploadView" class="page-view">
+      <div class="hero-section" style="padding: 32px 0 16px; text-align: left;">
+        <h1 class="hero-title" style="font-size:36px;margin-bottom:8px;">Dashboard</h1>
+        <p class="hero-subtitle" style="margin:0;max-width:100%;">Upload documents for high-speed long-horizon OCR parsing.</p>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="upload-card">
+          <div id="dropzone" class="dropzone-large">
+            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" />
+            <div class="upload-circle">
+              <i data-lucide="upload-cloud" style="width:32px;height:32px;color:#ffffff;"></i>
+            </div>
+            <div style="font-family:var(--font-heading);font-size:22px;font-weight:600;margin-bottom:8px;">
+              Drag & Drop your document here
+            </div>
+            <div style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">
+              Supports PDF, PNG, JPG, WEBP formats up to 50MB
+            </div>
+            <button class="btn btn-primary">Browse Files</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Page 4: 3-Panel OCR Workspace View -->
+    <main id="ocrView" class="page-view">
+      <div class="hero-section" style="padding: 24px 0 12px; text-align: left; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <h2 class="hero-title" style="font-size:28px;margin-bottom:4px;" id="ocrDocumentTitle">Processing Document</h2>
+          <p class="hero-subtitle" style="margin:0;font-size:14px;">One-Shot Long-Horizon OCR Processing in progress...</p>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="panel-visibility-wrapper">
+            <button class="btn btn-secondary" id="hideScreenBtn" onclick="toggleHideScreenDropdown()">
+              <i data-lucide="eye-off" style="width:14px;height:14px;"></i> Hide Screen
+            </button>
+            <div id="hideScreenDropdown" class="hide-screen-dropdown" style="display:none;">
+              <div class="hide-dropdown-title">Hidden Screens</div>
+              <div id="hiddenScreensList" class="hidden-screens-list">
+                <div class="hidden-empty-state">No screens are hidden</div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="switchView('upload')">
+            <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> Upload Another
+          </button>
+        </div>
+      </div>
+
+      <div class="ocr-3panel-grid" id="ocrPanelGrid">
+        <!-- Panel 1: Document -->
+        <div class="workspace-panel" id="panelDocument">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i data-lucide="file-text" style="width:16px;height:16px;"></i> Document
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="pdfPageNav" style="display:none;align-items:center;gap:4px;">
+                <button class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="changePdfPage(-1)">&lt;</button>
+                <span id="pdfPageLabel" style="font-size:11px;color:var(--text-secondary);font-family:var(--font-mono);">1 / 1</span>
+                <button class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="changePdfPage(1)">&gt;</button>
+              </div>
+              <div id="ocrFileBadge" class="format-badge">PDF</div>
+            </div>
+          </div>
+
+          <div class="document-controls" aria-label="OCR processing controls">
+            <label class="speed-selector" for="speedSelector">
+              <span>Speed</span>
+              <select id="speedSelector" aria-label="OCR processing speed" onchange="updateOcrSpeed(this.value)">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="fast">Fast</option>
+              </select>
+            </label>
+            <div class="processing-actions">
+              <button id="startOcrBtn" class="btn btn-primary" type="button" onclick="startLongHorizonOCR()">
+                <i data-lucide="play" style="width:13px;height:13px;"></i> Start
+              </button>
+              <button id="stopOcrBtn" class="btn btn-secondary" type="button" onclick="stopLongHorizonOCR()" disabled>
+                <i data-lucide="square" style="width:13px;height:13px;"></i> Stop
+              </button>
+            </div>
+          </div>
+
+          <div class="document-viewport">
+            <div id="laserScanBeam" class="laser-scan-beam"></div>
+            <div id="imageFrame" class="image-frame">
+              <img id="ocrDocumentImg" class="document-image" src="" alt="Uploaded Input Document" />
+              <div id="bboxContainer" class="bbox-container"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: OCR -->
+        <div class="workspace-panel" id="panelOcr">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i data-lucide="terminal" style="width:16px;height:16px;"></i> OCR
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button id="copyBtn" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="copyOutputText()">
+                <i data-lucide="copy" style="width:12px;height:12px;"></i> Copy
+              </button>
+              <div class="export-dropdown-wrapper" style="position:relative;">
+                <button id="exportBtn" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="toggleExportDropdown()">
+                  <i data-lucide="download" style="width:12px;height:12px;"></i> Export <i data-lucide="chevron-down" style="width:11px;height:11px;margin-left:2px;"></i>
+                </button>
+                <div id="exportDropdown" class="panel-menu-dropdown" style="display:none;right:0;top:calc(100% + 6px);min-width:150px;">
+                  <div class="panel-menu-item" onclick="exportMarkdownFile()">
+                    <i data-lucide="file-text" style="width:13px;height:13px;"></i> Export as .md
+                  </div>
+                  <div class="panel-menu-item" onclick="exportTextFile()">
+                    <i data-lucide="file-type-2" style="width:13px;height:13px;"></i> Export as .text
+                  </div>
+                </div>
+              </div>
+              <div class="panel-menu-wrapper">
+                <button class="panel-menu-btn" onclick="togglePanelMenu('ocr')" title="Panel options">
+                  <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
+                </button>
+                <div id="panelMenuOcr" class="panel-menu-dropdown" style="display:none;">
+                  <div class="panel-menu-item" onclick="hidePanel('ocr')">
+                    <i data-lucide="eye-off" style="width:13px;height:13px;"></i> Hide OCR Screen
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="output-body" style="background:#030304;">
+            <div id="rawCodeStream" class="raw-code-stream"></div>
+            <span id="typewriterCursor" class="cursor-blink"></span>
+          </div>
+
+          <div class="metrics-bar">
+            <div class="metric-item">
+              <span>Tokens:</span>
+              <span id="metricTokens" class="metric-value">0</span>
+            </div>
+            <div class="metric-item">
+              <span>Speed:</span>
+              <span id="metricTps" class="metric-value">0.0 t/s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Visualisation -->
+        <div class="workspace-panel" id="panelVisualization">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i data-lucide="layout-grid" style="width:16px;height:16px;"></i> Visualisation
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="output-tabs">
+                <button id="tabRendered" class="tab-btn active" onclick="switchOutputTab('rendered')">Rendered</button>
+                <button id="tabJson" class="tab-btn" onclick="switchOutputTab('json')">AST JSON</button>
+              </div>
+              <div class="panel-menu-wrapper">
+                <button class="panel-menu-btn" onclick="togglePanelMenu('visualization')" title="Panel options">
+                  <i data-lucide="more-vertical" style="width:16px;height:16px;"></i>
+                </button>
+                <div id="panelMenuVisualization" class="panel-menu-dropdown" style="display:none;">
+                  <div class="panel-menu-item" onclick="hidePanel('visualization')">
+                    <i data-lucide="eye-off" style="width:13px;height:13px;"></i> Hide Visualisation Screen
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="output-body">
+            <div id="visualizationContent"></div>
+          </div>
+
+          <div class="metrics-bar">
+            <div class="metric-item">
+              <span>Decode Latency:</span>
+              <span id="metricLatency" class="metric-value">0.00s</span>
+            </div>
+            <div class="metric-item" id="metricConfidenceContainer" style="display:none;">
+              <span>Confidence:</span>
+              <span id="metricConfidence" class="metric-value" style="color:#ffffff;">99.4%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Page 5: Overview View -->
+    <main id="overviewView" class="page-view">
+      <div class="page-container-wide">
+        <div class="page-header reveal-on-scroll">
+          <div class="page-tag">
+            <i data-lucide="layout" style="width:13px;height:13px;"></i> User Interface & Frontend Architecture
+          </div>
+          <h1 class="page-title-large">HorizonOCR Frontend Overview</h1>
+          <p class="page-subtitle">
+            An interactive, high-performance 3-panel workspace designed for real-time document visualization, progressive typewriter text streaming, KaTeX formula rendering, and 60fps zero-delay synchronized scrolling.
+          </p>
+        </div>
+
+        <!-- Frontend Highlights Grid -->
+        <div class="spec-grid reveal-on-scroll">
+          <div class="spec-card">
+            <div class="spec-val">3-Panel</div>
+            <div class="spec-label">Synchronized Workspace UI</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">Document viewport, raw stream editor, and rendered visualization screen.</p>
+          </div>
+          <div class="spec-card">
+            <div class="spec-val">60 FPS</div>
+            <div class="spec-label">Lockstep Scroll Engine</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">Zero-delay proportional scrolling between typewriter and rendered panels.</p>
+          </div>
+          <div class="spec-card">
+            <div class="spec-val">3 Speed</div>
+            <div class="spec-label">User Cadence Controls</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">Adjustable streaming speeds: Slow (55ms), Medium (26ms), and Fast (10ms).</p>
+          </div>
+        </div>
+
+        <!-- Frontend Architectural Content -->
+        <div class="content-card-box reveal-on-scroll">
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="columns" style="width:20px;height:20px;"></i> 1. 3-Panel Visual Workspace Layout
+            </h2>
+            <p class="policy-text">
+              The HorizonOCR frontend interface provides an intuitive 3-panel workspace designed for real-time document review:
+            </p>
+            <ul class="policy-list">
+              <li><strong>Panel 1 (Input Document Viewport):</strong> Interactive PDF canvas and document preview with page navigation, zoom, laser scan animation beam, and spatial bounding box overlays.</li>
+              <li><strong>Panel 2 (Raw OCR Output Stream):</strong> Real-time monospaced typewriter stream showing raw text, list items, GitHub-Flavored Markdown tables, and formatted image tags.</li>
+              <li><strong>Panel 3 (Layout Visualization Screen):</strong> Rich HTML rendered view parsing Markdown structure, mathematical formulas, and embedded image assets in real time.</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="zap" style="width:20px;height:20px;"></i> 2. Zero-Delay 60fps Lockstep Scroll Engine
+            </h2>
+            <p class="policy-text">
+              Panel 2 and Panel 3 feature a frame-locked scroll synchronization algorithm that keeps both panels locked in 1:1 proportional alignment:
+            </p>
+            <ul class="policy-list">
+              <li><strong>0ms Instant Transition:</strong> Utilizes <code>scroll-behavior: auto</code> to eliminate CSS animation queue delay during rapid text updates.</li>
+              <li><strong>requestAnimationFrame Synchronization:</strong> Recalculates scroll height ratios after DOM reflow to guarantee zero visual lag.</li>
+              <li><strong>Bidirectional Manual Scroll:</strong> Allows users to scroll either panel manually while automatically keeping the adjacent panel locked in proportional scroll sync.</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="file-code" style="width:20px;height:20px;"></i> 3. Frontend Markdown, KaTeX Math & Image Formatting
+            </h2>
+            <p class="policy-text">
+              The frontend rendering pipeline transforms raw OCR streams into crisp visual layouts:
+            </p>
+            <ul class="policy-list">
+              <li><strong>KaTeX Mathematical Equations:</strong> Automatically renders inline (<code>$ ... $</code>) and block equation (<code>$$ ... $$</code>) LaTeX delimiters into vector equations.</li>
+              <li><strong>Custom Image Tag Pre-processing:</strong> Pre-processes custom tags (e.g., <code>![Image1 | filename.png]</code>) into interactive image elements inside Panel 3.</li>
+              <li><strong>Tab View Switcher:</strong> Instantly toggles between standard Rendered HTML view and structured AST JSON tree view.</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="palette" style="width:20px;height:20px;"></i> 4. Design System & SPA Navigation
+            </h2>
+            <p class="policy-text">
+              Built with pure Vanilla JavaScript and a custom Vanilla CSS design system:
+            </p>
+            <ul class="policy-list">
+              <li><strong>Ultra-Monochrome Dark Aesthetic:</strong> High-contrast black background palette (<code>#050507</code>), subtle glassmorphic cards (<code>backdrop-filter</code>), and Space Grotesk typography.</li>
+              <li><strong>Zero Framework Overhead:</strong> Fast single-page application (SPA) router ensuring sub-millisecond view transitions and light bundle memory footprint.</li>
+              <li><strong>Lucide Vector Icons:</strong> Crisp, lightweight SVG icon system integrated seamlessly across all workspace panels and navigation controls.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Page 5.5: System Flow View -->
+    <main id="systemFlowView" class="page-view">
+      <div class="page-container-wide">
+        <div class="page-header">
+          <div class="page-tag">
+            <i data-lucide="layout" style="width:13px;height:13px;"></i> Frontend User Experience & Visual Flow
+          </div>
+          <h1 class="page-title-large">HorizonOCR Frontend System Flow</h1>
+          <p class="page-subtitle">
+            A step-by-step visual breakdown explaining the complete user journey across the HorizonOCR single-page application—from initial website landing to 3-panel workspace streaming, KaTeX formula rendering, and 60fps lockstep scroll synchronization.
+          </p>
+        </div>
+
+        <!-- Visual Interactive Flow Diagram -->
+        <div class="flow-diagram-container">
+
+          <!-- Stage 01 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 01 • LANDING PAGE ENTRY</span>
+              <span class="flow-step-num">01</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="globe" style="width:20px;height:20px;"></i> Website Entry & SPA Router Handshake
+            </h3>
+            <p class="flow-step-desc">
+              When the user opens the web application, the lightweight Vanilla JS single-page router initializes instantly. It renders the modern monochrome landing page, triggers Lucide vector icons, and configures navigation routes without reloading the browser.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">Vanilla JS SPA Router</span>
+              <span class="tech-chip">Lucide SVG Icons</span>
+              <span class="tech-chip">Glassmorphic CSS System</span>
+              <span class="tech-chip">Space Grotesk Typography</span>
+            </div>
+          </div>
+
+          <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+          <!-- Stage 02 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 02 • USER AUTHENTICATION</span>
+              <span class="flow-step-num">02</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="user-check" style="width:20px;height:20px;"></i> Registration Guard & Login Navigation
+            </h3>
+            <p class="flow-step-desc">
+              Unauthenticated visitors clicking "Try Playground" are guided to the Registration view (<code>authView</code>). Upon entering credentials, client-side input validation runs, switching the UI state to authenticated mode and unlocking the user workspace header.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">Client Auth Guard</span>
+              <span class="tech-chip">Form Validation</span>
+              <span class="tech-chip">Dynamic Navbar Switcher</span>
+              <span class="tech-chip">User Badge UI</span>
+            </div>
+          </div>
+
+          <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+          <!-- Stage 03 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 03 • DOCUMENT FILE INTAKE</span>
+              <span class="flow-step-num">03</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="upload-cloud" style="width:20px;height:20px;"></i> Interactive Drag & Drop Upload Zone
+            </h3>
+            <p class="flow-step-desc">
+              On the Dashboard (<code>uploadView</code>), users drag and drop PDF, PNG, JPG, or WEBP document files. The frontend validates format integrity, checks the 50MB file size boundary, counts PDF pages, and triggers smooth drop animations.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">HTML5 Drag & Drop</span>
+              <span class="tech-chip">File Format Validation</span>
+              <span class="tech-chip">50MB Client Cap</span>
+              <span class="tech-chip">Drop Animations</span>
+            </div>
+          </div>
+
+          <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+          <!-- Stage 04 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 04 • 3-PANEL WORKSPACE LAUNCH</span>
+              <span class="flow-step-num">04</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="columns" style="width:20px;height:20px;"></i> 3-Panel Visual Workspace & Canvas Renderer
+            </h3>
+            <p class="flow-step-desc">
+              The app transitions to the Workspace (<code>ocrView</code>). Panel 1 renders the PDF page canvas via PDF.js with laser scan animation beams and spatial bounding box overlays representing detected document regions.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">PDF.js Canvas</span>
+              <span class="tech-chip">Laser Scan Beam</span>
+              <span class="tech-chip">Spatial Overlays</span>
+              <span class="tech-chip">Page Controls & Zoom</span>
+            </div>
+          </div>
+
+          <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+          <!-- Stage 05 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 05 • STREAMING & MARKDOWN PARSING</span>
+              <span class="flow-step-num">05</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="file-code" style="width:20px;height:20px;"></i> Real-Time Typewriter Cadence & KaTeX Rendering
+            </h3>
+            <p class="flow-step-desc">
+              Panel 2 streams raw OCR text progressively according to user speed preferences (Slow/Medium/Fast). Simultaneously, Panel 3 parses Markdown structure via <code>marked.js</code>, renders LaTeX math formulas using <code>KaTeX</code> (<code>$$ ... $$</code>), and displays formatted image tags.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">Typewriter Cadence Engine</span>
+              <span class="tech-chip">marked.js Parser</span>
+              <span class="tech-chip">KaTeX Math Formula Vector</span>
+              <span class="tech-chip">AST View Switcher</span>
+            </div>
+          </div>
+
+          <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+          <!-- Stage 06 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 06 • LOCKSTEP SCROLL SYNC</span>
+              <span class="flow-step-num">06</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="zap" style="width:20px;height:20px;"></i> 0ms 60fps Lockstep Synchronized Scrolling
+            </h3>
+            <p class="flow-step-desc">
+              Panel 2 (Raw OCR Stream) and Panel 3 (Layout Visualization) execute a frame-locked <code>requestAnimationFrame()</code> scroll algorithm. Utilizing <code>scroll-behavior: auto</code>, both panels maintain 1:1 proportional scroll alignment with zero UI delay.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">0ms Auto Scroll</span>
+              <span class="tech-chip">requestAnimationFrame Sync</span>
+              <span class="tech-chip">Bidirectional Scroll Ratio</span>
+              <span class="tech-chip">60fps Lockstep Alignment</span>
+            </div>
+          </div>
+
+          <div class="flow-connector-line"><i data-lucide="arrow-down" style="width:20px;height:20px;"></i></div>
+
+          <!-- Stage 07 -->
+          <div class="flow-step-card">
+            <div class="flow-step-header">
+              <span class="flow-stage-badge">STAGE 07 • HISTORY EXPORT & LOGOUT</span>
+              <span class="flow-step-num">07</span>
+            </div>
+            <h3 class="flow-step-title">
+              <i data-lucide="log-out" style="width:20px;height:20px;"></i> Document History Review, Export & Logout
+            </h3>
+            <p class="flow-step-desc">
+              Users can inspect past document parsing runs in the Dashboard history table, copy output text, or export structured <code>.md</code> files. Clicking "Logout" clears active UI user state and smoothly redirects back to guest mode.
+            </p>
+            <div class="tech-chip-list">
+              <span class="tech-chip">Dashboard History UI</span>
+              <span class="tech-chip">One-Click Text Copy</span>
+              <span class="tech-chip">Markdown .md Export</span>
+              <span class="tech-chip">Guest Reset Router</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Frontend UI Architecture Breakdown Section -->
+        <div class="content-card-box">
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="palette" style="width:20px;height:20px;"></i> Frontend Technology & Design System Breakdown
+            </h2>
+            <p class="policy-text">
+              The HorizonOCR frontend interface was built prioritizing zero-dependency performance, rich aesthetics, and sub-millisecond view transitions:
+            </p>
+
+            <table class="tech-summary-table">
+              <thead>
+                <tr>
+                  <th>Frontend Component</th>
+                  <th>Technologies & Tools</th>
+                  <th>Interface Function & User Experience</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>SPA View Router</strong></td>
+                  <td>Vanilla JavaScript</td>
+                  <td>Sub-millisecond single-page view transitions between Landing, Auth, Dashboard, Workspace, Overview, System Flow, and Blog views.</td>
+                </tr>
+                <tr>
+                  <td><strong>Design System & Layout</strong></td>
+                  <td>Vanilla CSS & HSL Tokens</td>
+                  <td>Custom ultra-monochrome palette (<code>#050507</code>), Space Grotesk typography, glassmorphism cards, and responsive grids.</td>
+                </tr>
+                <tr>
+                  <td><strong>Document Viewport</strong></td>
+                  <td>PDF.js Canvas & Lucide Icons</td>
+                  <td>Client-side vector PDF page rendering, page navigation, laser scanning animation beam, and spatial bounding overlays.</td>
+                </tr>
+                <tr>
+                  <td><strong>Markdown & Math Engine</strong></td>
+                  <td><code>marked.js</code> & <code>KaTeX</code></td>
+                  <td>Live GitHub-Flavored Markdown table parsing and instant vector rendering of LaTeX mathematical equations (<code>$$ ... $$</code>).</td>
+                </tr>
+                <tr>
+                  <td><strong>Synchronized Scroll Engine</strong></td>
+                  <td><code>requestAnimationFrame()</code> & CSS <code>auto</code></td>
+                  <td>Frame-locked proportional scroll ratio alignment keeping Panel 2 and Panel 3 synchronized in 60fps lockstep.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Page 7: Privacy Policy View -->
+    <main id="privacyView" class="page-view">
+      <div class="page-container-wide">
+        <div class="page-header">
+          <div class="page-tag">
+            <i data-lucide="shield-check" style="width:13px;height:13px;"></i> Security, Data Rights & Legal Privacy
+          </div>
+          <h1 class="page-title-large">Privacy Policy</h1>
+          <p class="page-subtitle">
+            Comprehensive legal privacy policy detailing data protection, multi-tenant SQLite database isolation, user ownership rights, and full development methodology.
+          </p>
+        </div>
+
+        <div class="content-card-box">
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="lock" style="width:20px;height:20px;"></i> 1. Multi-Tenant Document Data Isolation & Ownership
+            </h2>
+            <p class="policy-text">
+              HorizonOCR enforces strict account-scoped document data isolation. Every document uploaded to our processing pipeline—including multi-page PDFs, PNGs, JPGs, WEBP files, extracted Markdown text, and binary image BLOBs—is strictly bound to your authenticated user account ID (<code>user_id</code>).
+            </p>
+            <p class="policy-text">
+              You retain 100% intellectual property ownership over all uploaded source documents and generated deliverables. Other registered users cannot access, view, or query your document history, extracted tables, or stored images.
+            </p>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="database" style="width:20px;height:20px;"></i> 2. SQLite Binary BLOB Storage & Image Security
+            </h2>
+            <p class="policy-text">
+              User profiles, password hashes, processing timing metrics, document metadata, and extracted graphics are stored in a secure SQLite database (<code>database.db</code>):
+            </p>
+            <ul class="policy-list">
+              <li><strong>Binary BLOB Persistence:</strong> Embedded PDF images and diagrams are converted to web-standard 24-bit PNG format and stored as binary <code>BLOB</code> data inside <code>document_images</code>.</li>
+              <li><strong>Session Scoped Serving:</strong> Image assets are served via <code>GET /api/images/&lt;img_name&gt;</code>, which validates session ownership to block cross-account data leaks.</li>
+              <li><strong>CMYK Color Normalization:</strong> Strips print color profiles and converts complex CMYK/JPX graphics to RGB PNGs using Pillow (<code>PIL.Image</code>) before persistence.</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="key" style="width:20px;height:20px;"></i> 3. Password Hashing & Session Cookie Security
+            </h2>
+            <p class="policy-text">
+              User credentials and session state are secured using industry-standard cryptography:
+            </p>
+            <ul class="policy-list">
+              <li><strong>Cryptographic Password Hashing:</strong> User passwords are hashed using PBKDF2 with SHA-256 before storage in SQLite <code>users</code>.</li>
+              <li><strong>Encrypted HTTP-Only Session Cookies:</strong> Authentication state is managed via encrypted HTTP-only session cookies (<code>session['user_id']</code>).</li>
+              <li><strong>Zero Third-Party Trackers:</strong> We do NOT use third-party tracking cookies, Google Analytics scripts, or cross-site behavioral trackers.</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="trash-2" style="width:20px;height:20px;"></i> 4. Temporary File Scrubbing & User Data Deletion
+            </h2>
+            <p class="policy-text">
+              Temporary file caches generated during PDF rasterization are immediately scrubbed from server memory upon completion of the OCR pipeline.
+            </p>
+            <p class="policy-text">
+              You maintain full control over your document history. You may delete past document records, clear cached outputs, or purge your account data at any time via your Dashboard profile settings.
+            </p>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="eye-off" style="width:20px;height:20px;"></i> 5. Anti-Selling & Non-Training Guarantee
+            </h2>
+            <p class="policy-text">
+              We strictly pledge that your uploaded documents, extracted Markdown text, and mathematical formulas will NEVER be sold, leased, or shared with third-party data brokers or advertising networks. Furthermore, your data is never used to train third-party AI models.
+            </p>
+          </div>
+
+          <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
+            <h2 class="policy-h2">
+              <i data-lucide="wrench" style="width:20px;height:20px;"></i> 6. Technical System Architecture & Development Disclosure
+            </h2>
+            <p class="policy-text">
+              HorizonOCR was engineered from scratch prioritizing sub-millisecond execution, robust data isolation, and high-throughput document intelligence:
+            </p>
+
+            <table class="tech-summary-table">
+              <thead>
+                <tr>
+                  <th>Layer / Component</th>
+                  <th>Technologies & Tools</th>
+                  <th>Technical Function & Implementation Method</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Backend REST API</strong></td>
+                  <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
+                  <td>Delivers session authentication, upload endpoints, rate limiting, and OCR pipeline orchestration.</td>
+                </tr>
+                <tr>
+                  <td><strong>PDF & Vector Engine</strong></td>
+                  <td>PyMuPDF (<code>fitz</code>)</td>
+                  <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
+                </tr>
+                <tr>
+                  <td><strong>OCR Fallback Engine</strong></td>
+                  <td>RapidOCR ONNX Runtime & Tesseract</td>
+                  <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+                </tr>
+                <tr>
+                  <td><strong>Database & Security</strong></td>
+                  <td>SQLite 3 (<code>database.db</code>)</td>
+                  <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
+                </tr>
+                <tr>
+                  <td><strong>Frontend SPA Framework</strong></td>
+                  <td>Vanilla JS Router & Custom Vanilla CSS</td>
+                  <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
+                </tr>
+                <tr>
+                  <td><strong>Document Rendering</strong></td>
+                  <td>PDF.js, <code>marked.js</code> & <code>KaTeX</code></td>
+                  <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ul class="policy-list" style="margin-top:16px;">
+              <li><strong>0ms Lockstep Scroll Sync:</strong> Uses <code>scroll-behavior: auto</code> and <code>requestAnimationFrame()</code> ratio formulas to eliminate UI delay during rapid typewriter streaming.</li>
+              <li><strong>Custom Image Tag Pre-processing:</strong> Standardizes raw OCR output tags into <code>![Image(N) | name]</code> and dynamically converts them to authenticated API endpoints on the frontend.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Page 8: Terms of Service View -->
+    <main id="termsView" class="page-view">
+      <div class="page-container-wide">
+        <div class="page-header">
+          <div class="page-tag">
+            <i data-lucide="file-text" style="width:13px;height:13px;"></i> Platform Terms, Usage & Legal Agreement
+          </div>
+          <h1 class="page-title-large">Terms of Service</h1>
+          <p class="page-subtitle">
+            Legal terms and operational conditions governing access to the HorizonOCR document parsing platform, single-page workspace, and API endpoints.
+          </p>
+        </div>
+
+        <div class="content-card-box">
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="check-circle" style="width:20px;height:20px;"></i> 1. Acceptance of Terms & Service Scope
+            </h2>
+            <p class="policy-text">
+              By accessing or using the HorizonOCR web application (<code>http://127.0.0.1:8080/</code>), services, or API endpoints, you agree to be bound by these Terms of Service. This agreement governs your use of the 3-panel OCR workspace, document upload pipeline, Markdown export tools, and account authentication services.
+            </p>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="user-check" style="width:20px;height:20px;"></i> 2. User Account Confidentiality & Security
+            </h2>
+            <p class="policy-text">
+              You are responsible for maintaining the confidentiality of your registered account credentials (username and password). All actions performed under your authenticated session are your sole responsibility.
+            </p>
+            <ul class="policy-list">
+              <li>Account credentials may not be shared, sold, or transferred to third parties.</li>
+              <li>Users must notify platform administrators immediately upon discovering any unauthorized session access.</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="alert-triangle" style="width:20px;height:20px;"></i> 3. Acceptable Use Policy & Resource Limits
+            </h2>
+            <p class="policy-text">
+              HorizonOCR is provided for lawful document OCR, structural table extraction, and mathematical formula parsing. Users agree strictly NOT to:
+            </p>
+            <ul class="policy-list">
+              <li>Upload illegal, malicious, or harmful content or malware-embedded containers into the file intake pipeline.</li>
+              <li>Attempt to bypass multi-tenant security filters or query image BLOB assets belonging to other user accounts.</li>
+              <li>Execute automated scripts to overload or launch Denial-of-Service (DoS) attacks against our backend REST API endpoints.</li>
+              <li>Exceed system limits: max 50MB file size per upload, max 25 pages per PDF document, and supported file types (PDF, PNG, JPG, WEBP).</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="shield" style="width:20px;height:20px;"></i> 4. Intellectual Property & Export Rights
+            </h2>
+            <p class="policy-text">
+              You retain 100% ownership and intellectual property rights over all uploaded source documents and generated text deliverables (Markdown tables, KaTeX equations, AST JSON trees). HorizonOCR claims no ownership or license over your processed outputs.
+            </p>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="activity" style="width:20px;height:20px;"></i> 5. Service Availability, Performance SLA & Liability
+            </h2>
+            <p class="policy-text">
+              While we strive for high-throughput 310.8 t/s processing performance and 60fps lockstep scroll synchronization, HorizonOCR is provided on an "as is" and "as available" basis without implied warranties of uninterrupted uptime.
+            </p>
+          </div>
+
+          <div class="policy-section">
+            <h2 class="policy-h2">
+              <i data-lucide="x-circle" style="width:20px;height:20px;"></i> 6. Account Termination & Data Scrubbing
+            </h2>
+            <p class="policy-text">
+              You maintain the right to terminate your account and delete your document history at any time. HorizonOCR reserves the right to suspend or terminate accounts that violate acceptable use policies.
+            </p>
+          </div>
+
+          <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
+            <h2 class="policy-h2">
+              <i data-lucide="cpu" style="width:20px;height:20px;"></i> 7. System Development, Engineering Stack & Implementation Disclosure
+            </h2>
+            <p class="policy-text">
+              The HorizonOCR platform was engineered using a modular, decoupled architecture to ensure sub-millisecond view responsiveness and multi-tenant data safety:
+            </p>
+
+            <table class="tech-summary-table">
+              <thead>
+                <tr>
+                  <th>System Area</th>
+                  <th>Technologies & Tools</th>
+                  <th>Operational Function & Implementation Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Backend REST API</strong></td>
+                  <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
+                  <td>Delivers session authentication, upload endpoints, file validation, rate limiting, and OCR pipeline orchestration.</td>
+                </tr>
+                <tr>
+                  <td><strong>PDF & Vector Engine</strong></td>
+                  <td>PyMuPDF (<code>fitz</code>)</td>
+                  <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
+                </tr>
+                <tr>
+                  <td><strong>OCR Fallback Engine</strong></td>
+                  <td>RapidOCR ONNX Runtime & Tesseract</td>
+                  <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+                </tr>
+                <tr>
+                  <td><strong>Database Storage</strong></td>
+                  <td>SQLite 3 (<code>database.db</code>)</td>
+                  <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
+                </tr>
+                <tr>
+                  <td><strong>Frontend SPA Framework</strong></td>
+                  <td>Vanilla JS Router & Custom Vanilla CSS</td>
+                  <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
+                </tr>
+                <tr>
+                  <td><strong>Document Rendering</strong></td>
+                  <td>PDF.js, <code>marked.js</code> & <code>KaTeX</code></td>
+                  <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ul class="policy-list" style="margin-top:16px;">
+              <li><strong>0ms Lockstep Scroll Sync:</strong> Uses <code>scroll-behavior: auto</code> and <code>requestAnimationFrame()</code> ratio formulas to eliminate UI delay during rapid typewriter streaming.</li>
+              <li><strong>Binary BLOB Image Isolation:</strong> Extracted embedded PDF graphics are stored directly into SQLite database BLOB columns, preventing unauthorized filesystem URI access across user accounts.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Component 2: Footer -->
+    <footer class="footer-container" style="margin-top:80px;border-top:1px solid var(--border-subtle);padding-top:48px;">
+      <div class="footer-grid">
+        <div>
+          <div class="brand-logo" style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <img src="assets/HorizonOCR.png" alt="HorizonOCR Logo" style="height:32px;width:auto;object-fit:contain;" />
+            <div class="brand-title" style="font-weight:700;letter-spacing:-0.5px;">Horizon<span>OCR</span></div>
+          </div>
+          <p style="color:var(--text-secondary);font-size:13.5px;max-width:320px;line-height:1.6;">
+            Next-generation vision-language OCR suite for high-throughput long-horizon document parsing.
+          </p>
+        </div>
+
+        <div style="text-align:right;">
+          <div class="footer-col-title">Platform</div>
+          <div class="footer-links" style="align-items:flex-end;">
+            <span class="footer-link" onclick="switchView('overview')">Overview</span>
+            <span class="footer-link" onclick="switchView('systemFlow')">System Flow</span>
+            <span class="footer-link" onclick="handlePlaygroundNavigation()">Playground</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom" style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;color:var(--text-muted);font-size:13px;">
+        <div>© 2026 HorizonOCR · All Rights Reserved</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="footer-link" onclick="switchView('privacy')">Privacy Policy</span>
+          <span style="color:var(--border-medium);">|</span>
+          <span class="footer-link" onclick="switchView('terms')">Terms of Service</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Modular Application Scripts -->
+  <script src="js/router.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/landing.js"></script>
+  <script src="js/pages/dashboard-page.js"></script>
+  <script src="js/pages/ocr-workspace.js"></script>
+  <script src="js/pages/panel-visibility.js"></script>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
