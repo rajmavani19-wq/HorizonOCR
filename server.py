@@ -282,6 +282,10 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
         """)
+        doc_columns = {row["name"] for row in conn.execute("PRAGMA table_info(documents)").fetchall()}
+        if "visualization_data" not in doc_columns:
+            conn.execute("ALTER TABLE documents ADD COLUMN visualization_data TEXT")
+
         conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_user_created ON documents(user_id, created_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_document_images_user_name ON document_images(user_id, img_name)")
 
@@ -1913,9 +1917,9 @@ def process_ocr():
 
         with get_db() as conn:
             conn.execute(
-                """INSERT INTO documents (user_id, filename, mode, markdown_output, tokens, tps, decode_time)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, filename, mode, markdown_output, token_count, tps, round(elapsed, 2)),
+                """INSERT INTO documents (user_id, filename, mode, markdown_output, tokens, tps, decode_time, visualization_data)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, filename, mode, markdown_output, token_count, tps, round(elapsed, 2), json.dumps(page_bboxes or {})),
             )
 
         return jsonify({
@@ -2345,13 +2349,51 @@ def live_admin_get_documents():
 
     with get_db() as conn:
         rows = conn.execute("""
-            SELECT id, user_id, filename, mode, markdown_output, tokens, tps, decode_time, created_at
+            SELECT id, user_id, filename, mode, markdown_output, tokens, tps, decode_time, visualization_data, created_at
             FROM documents
             ORDER BY id DESC
             LIMIT 200
         """).fetchall()
 
     return jsonify({"documents": [dict(r) for r in rows]})
+
+@app.route("/api/admin/live/visualizations", methods=["GET", "OPTIONS"])
+def live_admin_get_visualizations():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT id, user_id, filename, mode, tokens, tps, decode_time, visualization_data, created_at
+            FROM documents
+            ORDER BY id DESC
+            LIMIT 200
+        """).fetchall()
+
+    visualizations = []
+    for r in rows:
+        v_raw = r["visualization_data"]
+        v_parsed = None
+        if v_raw:
+            try:
+                v_parsed = json.loads(v_raw)
+            except Exception:
+                v_parsed = None
+        visualizations.append({
+            "id": r["id"],
+            "user_id": r["user_id"],
+            "filename": r["filename"],
+            "mode": r["mode"],
+            "tokens": r["tokens"],
+            "tps": r["tps"],
+            "decode_time": r["decode_time"],
+            "created_at": r["created_at"],
+            "visualization_data": v_parsed
+        })
+
+    return jsonify({"visualizations": visualizations})
 
 @app.route("/api/admin/live/documents/delete", methods=["POST", "OPTIONS"])
 def live_admin_delete_document():
