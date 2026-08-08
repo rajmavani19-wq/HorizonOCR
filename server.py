@@ -17,9 +17,13 @@ import logging
 import secrets
 import hmac
 import re
+import random
+import smtplib
 import urllib.request
 import urllib.parse
 import urllib.error
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from collections import defaultdict, deque
 from datetime import timedelta
 from functools import wraps
@@ -78,6 +82,16 @@ GITHUB_OAUTH_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_OAUTH_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_API_USER_URL = "https://api.github.com/user"
 GITHUB_API_EMAILS_URL = "https://api.github.com/user/emails"
+
+# SMTP configuration for OTP email verification.
+SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+OTP_EXPIRY_SECONDS = int(os.environ.get("OTP_EXPIRY_SECONDS", "600"))  # 10 minutes
+OTP_LENGTH = 6
+
+# In-memory store for pending OTP verifications.
+# Key: email (lowercase), Value: {otp, username, password_hash, created_at}
+_pending_otps: dict = {}
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -266,7 +280,7 @@ def init_db():
 
 init_db()
 
-def render_doc_pages_to_base64(filepath, max_pages=MAX_DOCUMENT_PAGES, dpi=150):
+def render_doc_pages_to_base64(filepath, max_pages=10, dpi=96):
     """Render a bounded number of pages for the authenticated review workspace."""
     page_images = []
     ext = Path(filepath).suffix.lower()
@@ -1173,40 +1187,34 @@ def extract_layout_and_markdown(filepath, user_id=1):
         # ── Step 1.5: Extract embedded images and store in database.db ──
         positioned_items = []  # list of (y_pos, markdown_str)
         try:
-            image_list = page.get_images(full=True)
-            if image_list:
-                for img_idx, img_info in enumerate(image_list):
-                    xref = img_info[0]
-                    try:
-                        pix = fitz.Pixmap(doc, xref)
-                        if pix.n >= 5:
-                            pix = fitz.Pixmap(fitz.csRGB, pix)
-                        img_bytes = pix.tobytes("png")
-                        if len(img_bytes) < 1500:
-                            continue
-                        rects = page.get_image_rects(xref)
-                        y_pos = rects[0].y0 if rects else 0.0
-
-                        doc_img_counter += 1
-                        img_name = f"{doc_hash}_p{page_num}_i{img_idx+1}.png"
-                        mime_type = "image/png"
-
-                        # Store extracted images under the authenticated user's account.
+            if doc_img_counter < 12 and page_num <= 10:
+                image_list = page.get_images(full=True)
+                if image_list:
+                    for img_idx, img_info in enumerate(image_list[:2]):
+                        xref = img_info[0]
                         try:
-                            with get_db() as conn:
-                                conn.execute("""
-                                    INSERT OR REPLACE INTO document_images (user_id, doc_hash, img_name, mime_type, img_data)
-                                    VALUES (?, ?, ?, ?, ?)
-                                """, (user_id, doc_hash, img_name, mime_type, img_bytes))
-                        except sqlite3.Error:
-                            logger.warning("Unable to store extracted image for page %s", page_num, exc_info=True)
+                            pix = fitz.Pixmap(doc, xref)
+                            if pix.n >= 5:
+                                pix = fitz.Pixmap(fitz.csRGB, pix)
+                            img_bytes = pix.tobytes("png")
+                            if len(img_bytes) < 2000 or len(img_bytes) > 2_000_000:
+                                continue
+                            doc_img_counter += 1
+                            img_name = f"{doc_hash}_p{page_num}_i{img_idx+1}.png"
+                            mime_type = "image/png"
 
-                        # Do not insert raw image/watermark graphic tags into text/math OCR output
-                        pass
-                    except Exception:
-                        logger.warning("Unable to extract embedded image %s from page %s", img_idx + 1, page_num, exc_info=True)
+                            try:
+                                with get_db() as conn:
+                                    conn.execute("""
+                                        INSERT OR REPLACE INTO document_images (user_id, doc_hash, img_name, mime_type, img_data)
+                                        VALUES (?, ?, ?, ?, ?)
+                                    """, (user_id, doc_hash, img_name, mime_type, img_bytes))
+                            except sqlite3.Error:
+                                pass
+                        except Exception:
+                            pass
         except Exception:
-            logger.warning("Embedded image extraction failed on page %s", page_num, exc_info=True)
+            pass
 
         # ── Step 2: Extract text blocks ─────────────────────────────
         try:
@@ -1367,9 +1375,8 @@ def _block_overlaps_tables(block_bbox, table_bboxes, threshold=0.50):
 
 def _attempt_ocr(page):
     """
-    Attempt OCR on a page using PyMuPDF's built-in Tesseract integration.
-    Returns extracted text if successful, empty string if OCR is unavailable
-    or fails.
+    Attempt OCR on a page using PyMuPDF Tesseract integration or RapidOCR fallback.
+    Returns extracted text if successful, empty string if OCR is unavailable.
     """
     try:
         tp = page.get_textpage_ocr(flags=3, language="eng", dpi=300)
@@ -1379,6 +1386,23 @@ def _attempt_ocr(page):
             return "\n".join(lines)
     except Exception:
         pass
+
+    # High-accuracy fallback to RapidOCR via page pixmap (works with ONNX runtime on Render)
+    try:
+        pix = page.get_pixmap(dpi=150)
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_img:
+            tmp_path = tmp_img.name
+        pix.save(tmp_path)
+        ocr_text, _ = run_ocr(tmp_path)
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        if ocr_text and ocr_text.strip():
+            return ocr_text.strip()
+    except Exception:
+        logger.warning("RapidOCR fallback on page pixmap failed", exc_info=True)
+
     return ""
 
 @app.route("/api/health", methods=["GET"])
@@ -1440,11 +1464,93 @@ def serve_static(path):
     return send_from_directory(str(BASE_DIR), "index.html")
 
 
+# --- OTP EMAIL HELPERS ---
+
+def _generate_otp() -> str:
+    """Generate a cryptographically random N-digit OTP string."""
+    return "".join(str(random.SystemRandom().randint(0, 9)) for _ in range(OTP_LENGTH))
+
+
+def _send_otp_email(recipient_email: str, otp: str) -> bool:
+    """Send the OTP verification email via Gmail SMTP. Returns True on success."""
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        logger.warning("SMTP credentials not configured — OTP email cannot be sent.")
+        return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"HorizonOCR — Your verification code is {otp}"
+    msg["From"] = f"HorizonOCR <{SMTP_EMAIL}>"
+    msg["To"] = recipient_email
+
+    plain_body = (
+        f"Your HorizonOCR verification code is: {otp}\n\n"
+        f"This code will expire in {OTP_EXPIRY_SECONDS // 60} minutes.\n"
+        f"If you did not request this, you can safely ignore this email."
+    )
+
+    html_body = f"""\
+    <html>
+    <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 0;">
+        <tr><td align="center">
+          <table width="480" cellpadding="0" cellspacing="0" style="background:#141414;border:1px solid #282828;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.8);">
+            <tr><td style="background:#1a1a1a;border-bottom:1px solid #282828;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">Horizon<span style="color:#ffffff;">OCR</span></h1>
+              <p style="margin:6px 0 0;font-size:13px;color:#999999;letter-spacing:0.5px;">SECURE EMAIL VERIFICATION</p>
+            </td></tr>
+            <tr><td style="padding:36px 40px 24px;">
+              <p style="margin:0 0 24px;font-size:15px;color:#c0c0c0;line-height:1.6;">
+                Use the verification code below to complete your registration. This code expires in <strong style="color:#ffffff;">{OTP_EXPIRY_SECONDS // 60} minutes</strong>.
+              </p>
+              <div style="text-align:center;margin:28px 0;">
+                <div style="display:inline-block;background:#000000;border:2px solid #444444;border-radius:12px;padding:18px 36px;letter-spacing:14px;font-size:36px;font-weight:800;color:#ffffff;font-family:'Courier New',monospace;box-shadow:0 0 30px rgba(255,255,255,0.06);">
+                  {otp}
+                </div>
+              </div>
+              <p style="margin:24px 0 0;font-size:13px;color:#777777;line-height:1.5;">
+                If you did not request this code, please ignore this email. Do not share this code with anyone.
+              </p>
+            </td></tr>
+            <tr><td style="padding:20px 40px 28px;border-top:1px solid #222222;background:#111111;">
+              <p style="margin:0;font-size:11px;color:#666666;text-align:center;">
+                &copy; 2026 HorizonOCR &mdash; Secure Document Intelligence
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    msg.attach(MIMEText(plain_body, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as smtp:
+            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+            smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+        logger.info("OTP email sent to %s", recipient_email)
+        return True
+    except Exception:
+        logger.exception("Failed to send OTP email to %s", recipient_email)
+        return False
+
+
+def _cleanup_expired_otps():
+    """Remove expired pending OTP entries."""
+    now = time.time()
+    expired = [email for email, data in _pending_otps.items() if now - data["created_at"] > OTP_EXPIRY_SECONDS]
+    for email in expired:
+        del _pending_otps[email]
+
+
 # --- AUTHENTICATION ENDPOINTS ---
 
 @app.route("/api/register", methods=["POST"])
 @rate_limit(5, 900)
 def register():
+    """Step 1: Validate inputs, generate OTP, send email. Does NOT create the account yet."""
     data = request.get_json(silent=True) or {}
     username = data.get("username", "").strip()
     email = data.get("email", "").strip().lower()
@@ -1459,22 +1565,102 @@ def register():
     if len(password) < 12 or len(password) > 128:
         return jsonify({"error": "Password must be between 12 and 128 characters."}), 400
 
+    # Check if username or email already exists in the database.
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT 1 FROM users WHERE username = ? OR email = ?", (username, email)
+        ).fetchone()
+    if existing:
+        return jsonify({"error": "An account with this username or email already exists."}), 409
+
+    # Cleanup expired OTPs before generating a new one.
+    _cleanup_expired_otps()
+
+    otp = _generate_otp()
+    _pending_otps[email] = {
+        "otp": otp,
+        "username": username,
+        "password_hash": generate_password_hash(password),
+        "created_at": time.time(),
+    }
+
+    if not _send_otp_email(email, otp):
+        del _pending_otps[email]
+        return jsonify({"error": "Unable to send verification email. Please try again later or contact support."}), 503
+
+    return jsonify({"status": "otp_sent", "email": email, "message": "A verification code has been sent to your email."}), 200
+
+
+@app.route("/api/verify-otp", methods=["POST"])
+@rate_limit(10, 900)
+def verify_otp():
+    """Step 2: Verify the OTP and create the account if it matches."""
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip().lower()
+    user_otp = data.get("otp", "").strip()
+
+    if not email or not user_otp:
+        return jsonify({"error": "Email and OTP are required."}), 400
+
+    pending = _pending_otps.get(email)
+    if not pending:
+        return jsonify({"error": "No pending verification found. Please register again."}), 404
+
+    # Check expiry.
+    if time.time() - pending["created_at"] > OTP_EXPIRY_SECONDS:
+        del _pending_otps[email]
+        return jsonify({"error": "Verification code has expired. Please register again."}), 410
+
+    # Constant-time comparison to prevent timing attacks.
+    if not hmac.compare_digest(pending["otp"], user_otp):
+        return jsonify({"error": "Invalid verification code. Please check and try again."}), 401
+
+    # OTP is valid — create the account.
     try:
         with get_db() as conn:
             cursor = conn.execute(
                 "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-                (username, email, generate_password_hash(password)),
+                (pending["username"], email, pending["password_hash"]),
             )
             user_id = cursor.lastrowid
     except sqlite3.IntegrityError:
+        del _pending_otps[email]
         return jsonify({"error": "Unable to create an account with those details."}), 409
 
+    # Cleanup the pending entry and start the session.
+    del _pending_otps[email]
     session.clear()
     session.permanent = True
     session["user_id"] = user_id
-    session["username"] = username
+    session["username"] = pending["username"]
     _csrf_token()
-    return jsonify({"status": "success", "user": {"id": user_id, "username": username, "email": email}}), 201
+    return jsonify({"status": "success", "user": {"id": user_id, "username": pending["username"], "email": email}}), 201
+
+
+@app.route("/api/resend-otp", methods=["POST"])
+@rate_limit(3, 300)
+def resend_otp():
+    """Regenerate and resend the OTP for a pending registration."""
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip().lower()
+
+    if not email:
+        return jsonify({"error": "Email is required."}), 400
+
+    _cleanup_expired_otps()
+
+    pending = _pending_otps.get(email)
+    if not pending:
+        return jsonify({"error": "No pending verification found. Please register again."}), 404
+
+    otp = _generate_otp()
+    pending["otp"] = otp
+    pending["created_at"] = time.time()
+
+    if not _send_otp_email(email, otp):
+        return jsonify({"error": "Unable to resend verification email. Please try again later."}), 503
+
+    return jsonify({"status": "otp_sent", "message": "A new verification code has been sent to your email."}), 200
 
 
 @app.route("/api/login", methods=["POST"])
