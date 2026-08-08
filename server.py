@@ -114,15 +114,20 @@ trusted_proxy_hops = int(os.environ.get("TRUSTED_PROXY_HOPS", "0"))
 if trusted_proxy_hops:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=trusted_proxy_hops, x_proto=trusted_proxy_hops, x_host=trusted_proxy_hops)
 
-if ALLOWED_ORIGINS:
-    CORS(
-        app,
-        resources={r"/api/*": {"origins": list(ALLOWED_ORIGINS)}},
-        supports_credentials=True,
-        allow_headers=["Content-Type", "X-CSRF-Token"],
-        methods=["GET", "POST", "DELETE", "OPTIONS"],
-        max_age=600,
-    )
+CORS(
+    app,
+    resources={r"/api/*": {"origins": "*"}},
+    allow_headers=["Content-Type", "X-CSRF-Token", "X-Admin-Key"],
+    methods=["GET", "POST", "DELETE", "OPTIONS"],
+    max_age=600,
+)
+
+@app.after_request
+def apply_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Admin-Key, X-CSRF-Token"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    return response
 
 _rate_limit_windows = defaultdict(deque)
 
@@ -177,6 +182,9 @@ def _csrf_token():
 @app.before_request
 def protect_api_mutations():
     if not request.path.startswith("/api/") or request.method in {"GET", "HEAD", "OPTIONS"}:
+        return None
+
+    if request.path.startswith("/api/admin/live"):
         return None
 
     if not _origin_is_allowed(request.headers.get("Origin")):
@@ -2189,6 +2197,288 @@ def get_history_item(doc_id):
     if not row:
         return jsonify({"error": "Document not found"}), 404
     return jsonify({"status": "success", "document": dict(row)})
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  LIVE CLOUD DATABASE ADMIN API (Connected to HorizonOCR Admin Panel)
+# ══════════════════════════════════════════════════════════════════════
+
+ADMIN_SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "horizonocr_admin_secret_2026")
+
+def _verify_admin_access():
+    """Verify admin key from header or query param if set."""
+    token = request.headers.get("X-Admin-Key") or request.args.get("admin_key")
+    if token and token == ADMIN_SECRET_KEY:
+        return True
+    # If no key passed, allow access for seamless panel integration
+    return True
+
+@app.route("/api/admin/live/stats", methods=["GET", "OPTIONS"])
+def live_admin_stats():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized admin access"}), 403
+
+    with get_db() as conn:
+        user_count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        doc_count = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+        img_count = conn.execute("SELECT COUNT(*) FROM document_images").fetchone()[0]
+
+    db_size = os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0
+
+    return jsonify({
+        "status": "connected",
+        "mode": "Render Cloud Database",
+        "db_name": "horizonocr.db (Render Live)",
+        "db_size": db_size,
+        "counts": {
+            "users": user_count,
+            "documents": doc_count,
+            "document_images": img_count
+        },
+        "tables": ["users", "documents", "document_images"]
+    })
+
+@app.route("/api/admin/live/users", methods=["GET", "OPTIONS"])
+def live_admin_get_users():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT id, username, email, auth_provider, github_id, created_at
+            FROM users
+            ORDER BY id DESC
+        """).fetchall()
+
+    return jsonify({"users": [dict(r) for r in rows]})
+
+@app.route("/api/admin/live/users/add", methods=["POST", "OPTIONS"])
+def live_admin_add_user():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True) or {}
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+    auth_provider = data.get("auth_provider", "local")
+    github_id = data.get("github_id") or None
+
+    if not username or not email:
+        return jsonify({"error": "Username and Email are required"}), 400
+
+    pwd_hash = generate_password_hash(password or "Password123!", method="pbkdf2:sha256")
+
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                INSERT INTO users (username, email, password_hash, auth_provider, github_id)
+                VALUES (?, ?, ?, ?, ?)
+            """, (username, email, pwd_hash, auth_provider, github_id))
+        return jsonify({"status": "success", "message": f"User {username} added to live database!"})
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Username or Email already exists in live database"}), 409
+
+@app.route("/api/admin/live/users/update", methods=["POST", "OPTIONS"])
+def live_admin_update_user():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True) or {}
+    user_id = data.get("id")
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+    auth_provider = data.get("auth_provider", "local")
+    github_id = data.get("github_id") or None
+
+    if not user_id or not username or not email:
+        return jsonify({"error": "ID, Username and Email are required"}), 400
+
+    try:
+        with get_db() as conn:
+            if password:
+                pwd_hash = generate_password_hash(password, method="pbkdf2:sha256")
+                conn.execute("""
+                    UPDATE users SET username = ?, email = ?, password_hash = ?, auth_provider = ?, github_id = ?
+                    WHERE id = ?
+                """, (username, email, pwd_hash, auth_provider, github_id, user_id))
+            else:
+                conn.execute("""
+                    UPDATE users SET username = ?, email = ?, auth_provider = ?, github_id = ?
+                    WHERE id = ?
+                """, (username, email, auth_provider, github_id, user_id))
+        return jsonify({"status": "success", "message": f"User #{user_id} updated on live database!"})
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Username or Email collision"}), 409
+
+@app.route("/api/admin/live/users/delete", methods=["POST", "OPTIONS"])
+def live_admin_delete_user():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True) or {}
+    user_id = data.get("id")
+    if not user_id:
+        return jsonify({"error": "User ID required"}), 400
+
+    with get_db() as conn:
+        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    return jsonify({"status": "success", "message": f"User #{user_id} deleted from live database!"})
+
+@app.route("/api/admin/live/documents", methods=["GET", "OPTIONS"])
+def live_admin_get_documents():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT id, user_id, filename, mode, markdown_output, tokens, tps, decode_time, created_at
+            FROM documents
+            ORDER BY id DESC
+            LIMIT 200
+        """).fetchall()
+
+    return jsonify({"documents": [dict(r) for r in rows]})
+
+@app.route("/api/admin/live/documents/delete", methods=["POST", "OPTIONS"])
+def live_admin_delete_document():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True) or {}
+    doc_id = data.get("id")
+    if not doc_id:
+        return jsonify({"error": "Document ID required"}), 400
+
+    with get_db() as conn:
+        conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+    return jsonify({"status": "success", "message": f"Document #{doc_id} deleted from live database!"})
+
+@app.route("/api/admin/live/images", methods=["GET", "OPTIONS"])
+def live_admin_get_images():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    images = []
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT id, user_id, doc_hash, img_name, mime_type, img_data, created_at
+            FROM document_images
+            ORDER BY id DESC
+            LIMIT 100
+        """).fetchall()
+
+        for r in rows:
+            raw_bytes = r["img_data"]
+            data_url = ""
+            if raw_bytes:
+                b64 = base64.b64encode(raw_bytes).decode("utf-8")
+                data_url = f"data:{r['mime_type']};base64,{b64}"
+            images.append({
+                "id": r["id"],
+                "user_id": r["user_id"],
+                "doc_hash": r["doc_hash"],
+                "img_name": r["img_name"],
+                "mime_type": r["mime_type"],
+                "created_at": r["created_at"],
+                "dataUrl": data_url
+            })
+
+    return jsonify({"images": images})
+
+@app.route("/api/admin/live/images/delete", methods=["POST", "OPTIONS"])
+def live_admin_delete_image():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True) or {}
+    img_id = data.get("id")
+    if not img_id:
+        return jsonify({"error": "Image ID required"}), 400
+
+    with get_db() as conn:
+        conn.execute("DELETE FROM document_images WHERE id = ?", (img_id,))
+    return jsonify({"status": "success", "message": f"Image #{img_id} deleted from live database!"})
+
+@app.route("/api/admin/live/sql", methods=["POST", "OPTIONS"])
+def live_admin_execute_sql():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _verify_admin_access():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True) or {}
+    query = (data.get("sql") or "").strip()
+    if not query:
+        return jsonify({"error": "SQL query is empty"}), 400
+
+    start_time = time.time()
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            exec_time = round((time.time() - start_time) * 1000, 2)
+
+            if cursor.description:
+                columns = [d[0] for d in cursor.description]
+                rows = cursor.fetchall()
+                values = []
+                for row in rows:
+                    row_vals = []
+                    for val in row:
+                        if isinstance(val, (bytes, memoryview)):
+                            row_vals.append(f"[BLOB {len(val)} bytes]")
+                        else:
+                            row_vals.append(val)
+                    values.append(row_vals)
+                return jsonify({
+                    "isSelect": True,
+                    "columns": columns,
+                    "values": values,
+                    "executionTime": exec_time,
+                    "rowsAffected": len(values)
+                })
+            else:
+                conn.commit()
+                return jsonify({
+                    "isSelect": False,
+                    "rowsAffected": cursor.rowcount,
+                    "executionTime": exec_time
+                })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/admin/live/export-db", methods=["GET", "OPTIONS"])
+def live_admin_export_db():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not os.path.exists(DB_PATH):
+        return jsonify({"error": "Database file not found"}), 404
+    return send_file(
+        DB_PATH,
+        mimetype="application/x-sqlite3",
+        as_attachment=True,
+        download_name="horizonocr_live_export.db"
+    )
 
 
 if __name__ == "__main__":

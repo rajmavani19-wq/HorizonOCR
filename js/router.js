@@ -23,7 +23,9 @@ const appState = {
   pageBboxes: {},
   ocrAbortController: null,
   ocrStreamTimer: null,
-  ocrSpeed: 'medium'
+  ocrSpeed: 'medium',
+  pendingOtpEmail: null,
+  otpResendTimer: null
 };
 
 // API helpers — support same-origin and approved split deployments.

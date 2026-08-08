@@ -84,10 +84,48 @@ async function handleAuthSubmit(e) {
   const email = document.getElementById('authEmail') ? document.getElementById('authEmail').value.trim() : '';
   const password = document.getElementById('authPassword').value.trim();
   const errorAlert = document.getElementById('authErrorAlert');
+  const submitBtn = document.getElementById('authSubmitBtn');
 
   if (errorAlert) errorAlert.style.display = 'none';
 
-  if (appState.authMode === 'register' && !/^[^@\s]+@gmail\.com$/i.test(email)) {
+  // Login Mode — direct authentication
+  if (appState.authMode !== 'register') {
+    try {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+      }
+      const res = await apiFetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (errorAlert) {
+          errorAlert.textContent = data.error || 'Authentication failed';
+          errorAlert.style.display = 'block';
+        }
+        return;
+      }
+      await checkAuthStatus();
+      switchView('upload');
+    } catch (err) {
+      if (errorAlert) {
+        errorAlert.textContent = 'Server communication error';
+        errorAlert.style.display = 'block';
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+      }
+    }
+    return;
+  }
+
+  // Register Mode — client validation first
+  if (!/^[^@\s]+@gmail\.com$/i.test(email)) {
     if (errorAlert) {
       errorAlert.textContent = 'Registration is only allowed with a @gmail.com email address.';
       errorAlert.style.display = 'block';
@@ -95,34 +133,285 @@ async function handleAuthSubmit(e) {
     return;
   }
 
-  const endpoint = appState.authMode === 'register' ? '/api/register' : '/api/login';
-  const payload = appState.authMode === 'register' 
-    ? { username, email, password }
-    : { username, password };
-
+  // Send OTP request to backend
   try {
-    const res = await apiFetch(endpoint, {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending verification code...';
+    }
+    const res = await apiFetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ username, email, password })
     });
 
     const data = await res.json();
     if (!res.ok) {
       if (errorAlert) {
-        errorAlert.textContent = data.error || 'Authentication failed';
+        errorAlert.textContent = data.error || 'Registration failed';
         errorAlert.style.display = 'block';
       }
       return;
     }
 
-    await checkAuthStatus();
-    switchView('upload');
+    if (data.status === 'otp_sent') {
+      appState.pendingOtpEmail = data.email;
+      showOtpSection(data.email);
+    }
   } catch (err) {
     if (errorAlert) {
       errorAlert.textContent = 'Server communication error';
       errorAlert.style.display = 'block';
     }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+    }
+  }
+}
+
+// ── OTP Verification Flow ──────────────────────────────────────────────────
+
+function showOtpSection(email) {
+  const authForm = document.getElementById('authForm');
+  const otpSection = document.getElementById('otpSection');
+  const otpEmail = document.getElementById('otpEmailDisplay');
+  const authDivider = document.querySelector('.auth-divider');
+  const githubBtn = document.getElementById('githubLoginBtn');
+  const authFooter = document.querySelector('.auth-footer');
+  const errorAlert = document.getElementById('authErrorAlert');
+
+  if (errorAlert) errorAlert.style.display = 'none';
+  if (authForm) authForm.style.display = 'none';
+  if (authDivider) authDivider.style.display = 'none';
+  if (githubBtn) githubBtn.style.display = 'none';
+  if (authFooter) authFooter.style.display = 'none';
+  if (otpEmail) otpEmail.textContent = email;
+  if (otpSection) {
+    otpSection.style.display = 'block';
+    setTimeout(() => otpSection.classList.add('visible'), 10);
+  }
+
+  setupOtpInputs();
+  startResendCooldown();
+}
+
+function hideOtpSection() {
+  const authForm = document.getElementById('authForm');
+  const otpSection = document.getElementById('otpSection');
+  const authDivider = document.querySelector('.auth-divider');
+  const githubBtn = document.getElementById('githubLoginBtn');
+  const authFooter = document.querySelector('.auth-footer');
+  const otpError = document.getElementById('otpErrorAlert');
+  const otpSuccess = document.getElementById('otpSuccessAlert');
+
+  if (authForm) authForm.style.display = '';
+  if (authDivider) authDivider.style.display = '';
+  if (githubBtn) githubBtn.style.display = '';
+  if (authFooter) authFooter.style.display = '';
+  if (otpSection) {
+    otpSection.classList.remove('visible');
+    otpSection.style.display = 'none';
+  }
+  if (otpError) otpError.style.display = 'none';
+  if (otpSuccess) otpSuccess.style.display = 'none';
+
+  document.querySelectorAll('.otp-digit').forEach(input => { input.value = ''; });
+  appState.pendingOtpEmail = null;
+  if (appState.otpResendTimer) {
+    clearInterval(appState.otpResendTimer);
+    appState.otpResendTimer = null;
+  }
+}
+
+function setupOtpInputs() {
+  const inputs = document.querySelectorAll('.otp-digit');
+  inputs.forEach((input, idx) => {
+    input.value = '';
+
+    // Remove existing event handlers by cloning if needed
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+  });
+
+  const refreshedInputs = document.querySelectorAll('.otp-digit');
+  refreshedInputs.forEach((input, idx) => {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/[^0-9]/g, '');
+      e.target.value = val.charAt(0) || '';
+      if (val && idx < refreshedInputs.length - 1) {
+        refreshedInputs[idx + 1].focus();
+      }
+      if (val && idx === refreshedInputs.length - 1) {
+        const otp = Array.from(refreshedInputs).map(i => i.value).join('');
+        if (otp.length === 6) handleOtpVerify();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+        refreshedInputs[idx - 1].focus();
+        refreshedInputs[idx - 1].value = '';
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData.getData('text') || '').replace(/[^0-9]/g, '').slice(0, 6);
+      pasted.split('').forEach((char, i) => {
+        if (refreshedInputs[i]) refreshedInputs[i].value = char;
+      });
+      if (pasted.length > 0) {
+        const focusIdx = Math.min(pasted.length, refreshedInputs.length - 1);
+        refreshedInputs[focusIdx].focus();
+      }
+      if (pasted.length === 6) handleOtpVerify();
+    });
+  });
+
+  if (refreshedInputs[0]) refreshedInputs[0].focus();
+}
+
+async function handleOtpVerify() {
+  const inputs = document.querySelectorAll('.otp-digit');
+  const otp = Array.from(inputs).map(i => i.value).join('');
+  const otpError = document.getElementById('otpErrorAlert');
+  const otpSuccess = document.getElementById('otpSuccessAlert');
+  const verifyBtn = document.getElementById('otpVerifyBtn');
+
+  if (otpError) otpError.style.display = 'none';
+  if (otpSuccess) otpSuccess.style.display = 'none';
+
+  if (otp.length !== 6) {
+    if (otpError) {
+      otpError.textContent = 'Please enter the complete 6-digit code.';
+      otpError.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    if (verifyBtn) {
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Verifying...';
+    }
+
+    const res = await apiFetch('/api/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: appState.pendingOtpEmail, otp })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (otpError) {
+        otpError.textContent = data.error || 'Verification failed';
+        otpError.style.display = 'block';
+      }
+      inputs.forEach(i => { i.value = ''; });
+      if (inputs[0]) inputs[0].focus();
+      return;
+    }
+
+    // Success
+    if (otpSuccess) {
+      otpSuccess.textContent = '✓ Account verified successfully! Redirecting...';
+      otpSuccess.style.display = 'block';
+    }
+
+    setTimeout(async () => {
+      hideOtpSection();
+      await checkAuthStatus();
+      switchView('upload');
+    }, 1200);
+  } catch (err) {
+    if (otpError) {
+      otpError.textContent = 'Server communication error';
+      otpError.style.display = 'block';
+    }
+  } finally {
+    if (verifyBtn) {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify & Create Account';
+    }
+  }
+}
+
+function startResendCooldown() {
+  const resendLink = document.getElementById('otpResendLink');
+  const resendTimer = document.getElementById('otpResendTimer');
+  const resendText = document.getElementById('otpResendText');
+
+  let countdown = 60;
+  if (resendLink) resendLink.style.display = 'none';
+  if (resendText) resendText.style.display = '';
+  if (resendTimer) {
+    resendTimer.style.display = '';
+    resendTimer.textContent = `Resend available in ${countdown}s`;
+  }
+
+  if (appState.otpResendTimer) clearInterval(appState.otpResendTimer);
+
+  appState.otpResendTimer = setInterval(() => {
+    countdown--;
+    if (resendTimer) resendTimer.textContent = `Resend available in ${countdown}s`;
+    if (countdown <= 0) {
+      clearInterval(appState.otpResendTimer);
+      appState.otpResendTimer = null;
+      if (resendTimer) resendTimer.style.display = 'none';
+      if (resendLink) resendLink.style.display = '';
+    }
+  }, 1000);
+}
+
+async function handleResendOtp() {
+  const otpError = document.getElementById('otpErrorAlert');
+  const otpSuccess = document.getElementById('otpSuccessAlert');
+  const resendLink = document.getElementById('otpResendLink');
+
+  if (otpError) otpError.style.display = 'none';
+
+  if (!appState.pendingOtpEmail) {
+    if (otpError) {
+      otpError.textContent = 'No pending registration. Please go back and try again.';
+      otpError.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    if (resendLink) resendLink.style.display = 'none';
+    const res = await apiFetch('/api/resend-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: appState.pendingOtpEmail })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (otpError) {
+        otpError.textContent = data.error || 'Failed to resend code';
+        otpError.style.display = 'block';
+      }
+      if (resendLink) resendLink.style.display = '';
+      return;
+    }
+    if (otpSuccess) {
+      otpSuccess.textContent = '✓ A new verification code has been sent!';
+      otpSuccess.style.display = 'block';
+      setTimeout(() => { if (otpSuccess) otpSuccess.style.display = 'none'; }, 4000);
+    }
+    document.querySelectorAll('.otp-digit').forEach(i => { i.value = ''; });
+    const firstInput = document.querySelector('.otp-digit');
+    if (firstInput) firstInput.focus();
+    startResendCooldown();
+  } catch (err) {
+    if (otpError) {
+      otpError.textContent = 'Server communication error';
+      otpError.style.display = 'block';
+    }
+    if (resendLink) resendLink.style.display = '';
   }
 }
 
