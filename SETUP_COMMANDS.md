@@ -1,17 +1,17 @@
-# Unlimited OCR — Complete Setup & Run Commands
+# HorizonOCR — Complete Setup & Run Commands
 
 ## Prerequisites
 
-- **Python 3.13+** (the project venv was created with 3.13)
-- **Windows** (primary development platform; also works on macOS/Linux)
-- **Git** (optional, for cloning)
+- **Python 3.12+** (recommended) or **Python 3.13**
+- **Windows / Linux / macOS** (cross-platform support)
+- **Git** (for version control & cloud deployment)
 
 ---
 
 ## Step 1: Navigate to the project directory
 
 ```powershell
-cd "F:\Antigravity Files\Unlimited OCR"
+cd "F:\Antigravity Files\HorizonOCR"
 ```
 
 ---
@@ -28,46 +28,33 @@ You should see `(.venv)` appear at the start of your prompt.
 
 ## Step 3: Install Python dependencies
 
-### Core (required — web server + basic OCR)
+### Core (Required — Web server + PyMuPDF + RapidOCR engine)
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### Optional OCR engines (install only what you need)
+### Optional OCR engines (Install only if needed)
 
 ```powershell
-# EasyOCR — pure Python, no system deps (recommended)
+# EasyOCR — Pure Python OCR adapter
 pip install easyocr
 
-# PaddleOCR — high accuracy, good for Chinese + English
+# PaddleOCR — High accuracy OCR engine
 pip install paddleocr
 
-# TrOCR — Microsoft transformer-based
-pip install transformers torch
-
-# docTR — Document Text Recognition
+# docTR — Document Text Recognition (PyTorch)
 pip install "python-doctr[torch]"
 
-# Tesseract via Python wrapper (requires system Tesseract binary)
+# Tesseract Python wrapper
 pip install pytesseract
 ```
 
-### Heavy model (baidu/Unlimited-OCR via HuggingFace)
-
-```powershell
-pip install transformers torch accelerate
-```
-
-> **Note:** The first time you run the project with a new OCR engine, its model files
-> will be downloaded to the `./models/` directory. This happens automatically and
-> only once. Subsequent runs load from local cache.
-
 ---
 
-## Step 4: Run the project
+## Step 4: Run the application
 
-### Option A — Web Server (Flask, port 8080)
+### Option A — Web Application Server (Flask, port 8080)
 
 ```powershell
 python server.py
@@ -75,50 +62,25 @@ python server.py
 
 Open your browser at: **http://127.0.0.1:8080**
 
-Use the web UI to upload images/PDFs and get OCR results.
+Use the web UI to register/login, upload documents (PDF, PNG, JPG, WEBP), and view extracted Markdown + layout visualizations in real time.
 
-### Option B — Local CLI (heavy baidu/Unlimited-OCR model)
+### Option B — Local CLI Processing
 
 ```powershell
-# Single image
-python run_local.py --input "path\to\image.png" --output_dir "./outputs"
-
-# PDF (all pages)
+# Process single image or PDF
 python run_local.py --input "path\to\document.pdf" --output_dir "./outputs"
-
-# With GPU (if available)
-python run_local.py --input "document.pdf" --device cuda
-```
-
-### Option C — SGLang concurrent inference (Linux + NVIDIA GPU only)
-
-```powershell
-python infer.py --pdf "document.pdf" --output_dir "./outputs" --concurrency 4
 ```
 
 ---
 
-## Quick one-shot (copy-paste all at once)
+## Quick One-Shot (Copy & Paste)
 
 ```powershell
 # From project root
 .venv\Scripts\activate
 pip install -r requirements.txt
-pip install easyocr
 python server.py
 ```
-
----
-
-## Verification
-
-To verify the RapidOCR backend works (lightweight, no extra installs needed):
-
-```powershell
-python _probe_pipeline.py
-```
-
-Expected output should show `STABLE True` and extracted text.
 
 ---
 
@@ -126,8 +88,6 @@ Expected output should show `STABLE True` and extracted text.
 
 | Problem | Solution |
 |---------|----------|
-| `.venv\Scripts\activate` fails | Make sure you are in PowerShell, not cmd.exe. Or re-create venv: `python -m venv .venv` |
-| `ModuleNotFoundError: No module named 'model_cache'` | Ensure you `cd`'d into the project root first |
-| Model re-downloads every run | After the recent fix, models go to `./models/` and persist. First run will still download. |
-| `ImportError: rapidocr_onnxruntime` | Run `pip install rapidocr_onnxruntime` |
-| Port 8080 already in use | Change the port in `server.py` line 532, or kill the process using port 8080 |
+| `.venv\Scripts\activate` fails | Ensure you are using PowerShell. Or recreate venv: `python -m venv .venv` |
+| `ModuleNotFoundError: No module named 'server'` | Ensure you have navigated (`cd`) into the project root directory |
+| Port 8080 already in use | Terminate existing Python process or change `PORT` in environment variables |

@@ -1,30 +1,95 @@
-# HorizonOCR Production Deployment
+# HorizonOCR Production Deployment Guide
 
 HorizonOCR is a private document-processing application. Deploy the Flask service and frontend together behind HTTPS on one origin whenever possible. This keeps authenticated cookies same-site and avoids exposing a public cross-origin API surface.
 
-## Required environment
+---
+
+## 🔑 Required Environment Variables
 
 Set these values in your platform secret manager; do not commit a real `.env` file.
 
-| Variable | Required | Purpose |
+| Variable | Required | Default / Purpose |
 | --- | --- | --- |
-| `APP_ENV=production` | Yes | Enables secure session-cookie behavior and requires a configured secret. |
-| `SECRET_KEY` | Yes | Long, random secret used to sign sessions. Rotate through the platform secret manager. |
-| `DATA_DIR` | Yes | Persistent, writable location for `horizonocr.db`. Mount this path to durable storage. |
-| `TRUSTED_PROXY_HOPS` | Usually | Set to `1` behind one managed reverse proxy so HTTPS-aware security behavior is correct. |
-| `ALLOWED_ORIGINS` | Split deployment only | Comma-separated HTTPS frontend origins. Leave empty for a same-origin deployment. |
-| `MAX_UPLOAD_BYTES` | Optional | Upload cap; default is 50 MiB. |
-| `MAX_DOCUMENT_PAGES` | Optional | PDF page cap; default is 25. |
+| `APP_ENV` | Yes | Set to `production` for secure cookie behavior. |
+| `SECRET_KEY` | Yes | Long, random secret used to sign user sessions. |
+| `DATA_DIR` | Yes | Persistent, writable directory path for `horizonocr.db`. |
+| `TRUSTED_PROXY_HOPS` | Yes | Set to `1` behind a reverse proxy (Render / Nginx / Cloudflare). |
+| `ALLOWED_ORIGINS` | No | Comma-separated HTTPS origins (only for split frontend/API deployment). |
+| `MAX_UPLOAD_BYTES` | No | File upload limit in bytes (default: 50 MiB). |
+| `MAX_DOCUMENT_PAGES` | No | PDF page extraction cap (default: 500 pages). |
 
-Use `.env.example` as a non-secret reference only.
+---
 
-## Container deployment
+## ☁️ Deployment Platforms
 
-Build and run the included production container with a durable volume mounted at `/var/lib/horizonocr`:
+### Option 1: Render.com (Recommended Web Service)
+
+HorizonOCR includes a ready-to-use [`render.yaml`](file:///f:/Antigravity%20Files/HorizonOCR/render.yaml) blueprint:
+
+1. Connect your repository to Render.com.
+2. Select **Web Service** and choose Python 3 runtime or Docker.
+3. Configure environment variables (`APP_ENV=production`, `SECRET_KEY`, `DATA_DIR=/opt/render/data`, `TRUSTED_PROXY_HOPS=1`).
+4. Attach a 1 GB+ Persistent Disk at `/opt/render/data` to preserve SQLite user data across restarts.
+
+---
+
+### Option 2: Google Cloud Platform (GCP Free Tier)
+
+Deploy on GCP Compute Engine `e2-micro` (Always Free eligible in `us-central1` / `us-east1` / `us-west1`):
+
+```bash
+# SSH into your GCP VM instance
+sudo apt update && sudo apt install -y docker.io git
+sudo systemctl enable --now docker
+
+# Clone repository and build Docker container
+git clone https://github.com/YOUR_USERNAME/HorizonOCR.git
+cd HorizonOCR
+sudo docker build -t horizonocr:latest .
+
+# Run container on Port 80
+sudo docker run -d \
+  --name horizonocr \
+  --restart always \
+  -p 80:8080 \
+  -e APP_ENV=production \
+  -e SECRET_KEY="$(openssl rand -hex 32)" \
+  -e DATA_DIR=/var/lib/horizonocr \
+  -e TRUSTED_PROXY_HOPS=1 \
+  -v horizonocr-data:/var/lib/horizonocr \
+  horizonocr:latest
+```
+
+---
+
+### Option 3: Oracle Cloud Infrastructure (OCI Always Free)
+
+Deploy on Oracle Cloud Ampere ARM or AMD Free VM instance:
+
+```bash
+# System setup & Docker installation
+sudo apt update && sudo apt install -y docker.io git
+sudo systemctl enable --now docker
+
+# Run Docker container
+docker build -t horizonocr .
+docker run -d --name horizonocr --restart always -p 80:8080 \
+  -e APP_ENV=production -e SECRET_KEY="$(openssl rand -hex 32)" \
+  -e DATA_DIR=/var/lib/horizonocr -e TRUSTED_PROXY_HOPS=1 \
+  -v horizonocr-data:/var/lib/horizonocr horizonocr
+```
+
+Open Port 80 in Oracle Security List and Ubuntu firewall (`iptables`).
+
+---
+
+## 🐳 Docker Deployment
+
+Build and run the included production container locally or on any cloud server:
 
 ```bash
 docker build -t horizonocr:prod .
-docker run --rm -p 8080:8080 \
+docker run -d -p 8080:8080 \
   -e APP_ENV=production \
   -e SECRET_KEY="$(openssl rand -hex 32)" \
   -e DATA_DIR=/var/lib/horizonocr \
@@ -33,35 +98,11 @@ docker run --rm -p 8080:8080 \
   horizonocr:prod
 ```
 
-Terminate TLS at a managed load balancer or reverse proxy and expose only HTTPS publicly. Keep the application container private behind that proxy where your platform supports it.
+---
 
-## Operational requirements
+## 📋 Pre-Launch Checklist
 
-- Use persistent block storage for `DATA_DIR`; SQLite is not appropriate for ephemeral filesystems or horizontally replicated application instances.
-- Run one application writer per SQLite database file. For multi-instance or high-throughput operation, migrate the persistence layer to a managed relational database before scaling replicas.
-- Put an edge rate limiter and request-size limit in front of the service. The application includes process-local request limits as a second layer, not a distributed abuse-control system.
-- Monitor `GET /api/health` from the platform health checker.
-- Back up the SQLite database using a storage-aware, consistent backup process. Test restore procedures before launch.
-- Rotate `SECRET_KEY` with a planned session invalidation window.
-- Do not expose `database` files, model caches, logs, temporary folders, source code, or environment files through the web server.
-
-## Deployment modes
-
-### Recommended: same-origin private service
-
-Serve `index.html`, static assets, and `/api/*` from this Flask/Gunicorn container behind one HTTPS hostname. Leave `window.API_BASE` empty.
-
-### Split frontend and API
-
-Use only when necessary. Configure the frontend with the exact HTTPS API origin and set `ALLOWED_ORIGINS` to the exact HTTPS frontend origin(s). Browsers require credentialed CORS for session cookies; wildcard origins are intentionally not supported.
-
-Deploy the application as a single Web Service on Render (or Docker container) using render.yaml for same-origin authentication and data persistence.
-
-## Pre-launch checklist
-
-- [ ] `APP_ENV=production` and a managed `SECRET_KEY` are configured.
-- [ ] The service has a persistent `DATA_DIR` volume and a tested database-backup plan.
-- [ ] HTTPS, proxy trust, and health checks are configured.
-- [ ] The desired same-origin or explicitly allowlisted split-origin topology is configured.
-- [ ] The deployment host enforces network, request-size, and distributed rate-limit policies.
-- [ ] A private test account has completed registration, login, upload, history, logout, and authorization-isolation checks.
+- [ ] `APP_ENV=production` and a secure `SECRET_KEY` are configured.
+- [ ] Durable volume storage is configured for `DATA_DIR`.
+- [ ] Health check endpoint (`GET /api/health`) responds with `200 OK`.
+- [ ] User registration, login, document upload, and history retrieval tested successfully.
