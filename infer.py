@@ -56,9 +56,9 @@ def get_ngram_processor_str():
 
 def pdf_to_images(pdf_path: str, dpi: int = 300) -> list[str]:
     try:
-        import fitz
-    except ImportError:
         import pymupdf as fitz  # type: ignore[import-not-found]
+    except ImportError:
+        import fitz
 
     doc = fitz.open(pdf_path)
     tmp_dir = tempfile.mkdtemp(prefix="pdf_ocr_")

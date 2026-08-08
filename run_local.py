@@ -12,9 +12,9 @@ import tempfile
 import model_cache  # noqa: F401 — sets up ./models/ local cache
 
 try:
-    import fitz  # PyMuPDF
-except ImportError:
     import pymupdf as fitz  # type: ignore[import-not-found]
+except ImportError:
+    import fitz  # PyMuPDF
 import torch
 from transformers import AutoModel, AutoTokenizer
 

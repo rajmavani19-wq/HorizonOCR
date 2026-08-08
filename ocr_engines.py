@@ -425,10 +425,10 @@ def _find_tesseract() -> str | None:
 def try_tesseract_pymupdf(filepath: str) -> str:
     """OCR via PyMuPDF's built-in Tesseract bridge (English)."""
     try:
-        import fitz
+        import pymupdf as fitz  # type: ignore[import-not-found]
     except ImportError:
         try:
-            import pymupdf as fitz  # type: ignore[import-not-found]
+            import fitz
         except ImportError:
             return ""
 

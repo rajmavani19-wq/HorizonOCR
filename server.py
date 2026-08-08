@@ -26,9 +26,9 @@ from functools import wraps
 from pathlib import Path
 
 try:
-    import fitz  # PyMuPDF
-except ImportError:
     import pymupdf as fitz  # type: ignore[import-not-found]
+except ImportError:
+    import fitz  # PyMuPDF
 from PIL import Image, UnidentifiedImageError
 from flask import Flask, request, jsonify, send_from_directory, send_file, session, redirect
 from flask_cors import CORS
