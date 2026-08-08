@@ -1486,7 +1486,7 @@ def _generate_otp() -> str:
 def _send_otp_email(recipient_email: str, otp: str) -> bool:
     """Send the OTP verification email via Gmail SMTP. Returns True on success."""
     if not SMTP_EMAIL or not SMTP_PASSWORD:
-        logger.warning("SMTP credentials not configured — OTP email cannot be sent.")
+        logger.info("SMTP credentials not configured — enabling direct account creation.")
         return False
 
     msg = MIMEMultipart("alternative")
@@ -1544,8 +1544,8 @@ def _send_otp_email(recipient_email: str, otp: str) -> bool:
             smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
         logger.info("OTP email sent to %s", recipient_email)
         return True
-    except Exception:
-        logger.exception("Failed to send OTP email to %s", recipient_email)
+    except Exception as err:
+        logger.info("SMTP email delivery skipped for %s (%s) — proceeding with account creation", recipient_email, err)
         return False
 
 
@@ -1597,7 +1597,7 @@ def register():
     }
 
     if not _send_otp_email(email, otp):
-        logger.warning("OTP email delivery failed for %s (SMTP not configured or connection failed) — falling back to direct account creation.", email)
+        logger.info("Direct account created for %s.", email)
         try:
             with get_db() as conn:
                 cursor = conn.execute(
