@@ -15,6 +15,8 @@ Set these values in your platform secret manager; do not commit a real `.env` fi
 | `DATA_DIR` | Yes | Persistent, writable directory path for `horizonocr.db`. |
 | `TRUSTED_PROXY_HOPS` | Yes | Set to `1` behind a reverse proxy (Render / Nginx / Cloudflare). |
 | `ALLOWED_ORIGINS` | No | Comma-separated HTTPS origins (only for split frontend/API deployment). |
+| `GITHUB_CLIENT_ID` | Optional | GitHub OAuth Client ID for GitHub Sign In. |
+| `GITHUB_CLIENT_SECRET` | Optional | GitHub OAuth Client Secret for GitHub Sign In. |
 | `MAX_UPLOAD_BYTES` | No | File upload limit in bytes (default: 50 MiB). |
 | `MAX_DOCUMENT_PAGES` | No | PDF page extraction cap (default: 500 pages). |
 
