@@ -25,7 +25,10 @@ from datetime import timedelta
 from functools import wraps
 from pathlib import Path
 
-import fitz  # PyMuPDF
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    import pymupdf as fitz  # type: ignore[import-not-found]
 from PIL import Image, UnidentifiedImageError
 from flask import Flask, request, jsonify, send_from_directory, send_file, session, redirect
 from flask_cors import CORS
@@ -38,6 +41,16 @@ from werkzeug.utils import secure_filename
 from ocr_engines import run_ocr, run_ocr_structured, _synthetic_blocks_from_text
 
 BASE_DIR = Path(__file__).resolve().parent
+
+# Load local .env for development convenience. In production (Render, etc.),
+# environment variables are injected by the platform and this is a no-op —
+# it never overwrites variables already present in the environment.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:
+    pass
+
 APP_ENV = os.environ.get("APP_ENV", "development").strip().lower()
 IS_PRODUCTION = APP_ENV == "production"
 SECRET_KEY = os.environ.get("SECRET_KEY")

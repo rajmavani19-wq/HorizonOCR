@@ -11,7 +11,10 @@ import tempfile
 # ── MUST be imported BEFORE any ML library ──────────────────────────
 import model_cache  # noqa: F401 — sets up ./models/ local cache
 
-import fitz  # PyMuPDF
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    import pymupdf as fitz  # type: ignore[import-not-found]
 import torch
 from transformers import AutoModel, AutoTokenizer
 

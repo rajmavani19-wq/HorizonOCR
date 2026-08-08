@@ -427,7 +427,10 @@ def try_tesseract_pymupdf(filepath: str) -> str:
     try:
         import fitz
     except ImportError:
-        return ""
+        try:
+            import pymupdf as fitz  # type: ignore[import-not-found]
+        except ImportError:
+            return ""
 
     try:
         doc = fitz.open(filepath)
@@ -528,8 +531,8 @@ def try_paddleocr(filepath: str) -> str:
 def try_doctr(filepath: str) -> str:
     """OCR via docTR (Document Text Recognition, Mindee)."""
     try:
-        from doctr.io import DocumentFile
-        from doctr.models import ocr_predictor
+        from doctr.io import DocumentFile  # type: ignore[import-not-found]
+        from doctr.models import ocr_predictor  # type: ignore[import-not-found]
     except ImportError:
         print("[docTR] Not installed — pip install python-doctr[torch]")
         return ""
@@ -595,7 +598,7 @@ def _get_rapidocr_engine():
     """Build the RapidOCR engine once and reuse it (~13 MB ONNX models)."""
     global _RAPIDOCR_ENGINE
     if _RAPIDOCR_ENGINE is None:
-        from rapidocr_onnxruntime import RapidOCR
+        from rapidocr_onnxruntime import RapidOCR  # type: ignore[import-not-found]
         _RAPIDOCR_ENGINE = RapidOCR()
     return _RAPIDOCR_ENGINE
 
@@ -603,7 +606,7 @@ def _get_rapidocr_engine():
 def try_rapidocr(filepath: str) -> str:
     """OCR via RapidOCR ONNX Runtime (English)."""
     try:
-        import rapidocr_onnxruntime  # noqa: F401
+        import rapidocr_onnxruntime  # noqa: F401  # type: ignore[import-not-found]
     except ImportError:
         print("[RapidOCR] Not installed — pip install rapidocr_onnxruntime")
         return ""
