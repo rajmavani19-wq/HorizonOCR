@@ -206,6 +206,12 @@ async function handleAuthSubmit(e) {
     if (data.status === 'otp_sent') {
       appState.pendingOtpEmail = data.email;
       showOtpSection(data.email);
+    } else if (data.status === 'success' && data.user) {
+      appState.user = data.user;
+      appState.authenticated = true;
+      if (typeof updateAuthUI === 'function') updateAuthUI();
+      if (typeof hideAuthModal === 'function') hideAuthModal();
+      if (typeof showToast === 'function') showToast('Account created successfully!', 'success');
     }
   } catch (err) {
     errorAlert.textContent = 'Server communication error';

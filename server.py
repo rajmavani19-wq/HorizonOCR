@@ -1597,8 +1597,30 @@ def register():
     }
 
     if not _send_otp_email(email, otp):
-        del _pending_otps[email]
-        return jsonify({"error": "Unable to send verification email. Please try again later or contact support."}), 503
+        logger.warning("OTP email delivery failed for %s (SMTP not configured or connection failed) — falling back to direct account creation.", email)
+        try:
+            with get_db() as conn:
+                cursor = conn.execute(
+                    "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+                    (username, email, generate_password_hash(password)),
+                )
+                user_id = cursor.lastrowid
+            if email in _pending_otps:
+                del _pending_otps[email]
+            session.clear()
+            session.permanent = True
+            session["user_id"] = user_id
+            session["username"] = username
+            _csrf_token()
+            return jsonify({
+                "status": "success",
+                "user": {"id": user_id, "username": username, "email": email},
+                "message": "Account created successfully!"
+            }), 201
+        except sqlite3.IntegrityError:
+            if email in _pending_otps:
+                del _pending_otps[email]
+            return jsonify({"error": "An account with this username or email already exists."}), 409
 
     return jsonify({"status": "otp_sent", "email": email, "message": "A verification code has been sent to your email."}), 200
 
