@@ -19,7 +19,6 @@ import hmac
 import re
 import random
 import smtplib
-import socket
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -85,10 +84,8 @@ GITHUB_API_USER_URL = "https://api.github.com/user"
 GITHUB_API_EMAILS_URL = "https://api.github.com/user/emails"
 
 # SMTP configuration for OTP email verification.
-SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "").strip().lower()
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").replace("\t", "").strip()
-# Resend.com HTTP API — works on Render (HTTPS port 443, never blocked by firewalls).
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 OTP_EXPIRY_SECONDS = int(os.environ.get("OTP_EXPIRY_SECONDS", "600"))  # 10 minutes
 OTP_LENGTH = 6
 
@@ -285,10 +282,6 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
         """)
-        doc_columns = {row["name"] for row in conn.execute("PRAGMA table_info(documents)").fetchall()}
-        if "visualization_data" not in doc_columns:
-            conn.execute("ALTER TABLE documents ADD COLUMN visualization_data TEXT")
-
         conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_user_created ON documents(user_id, created_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_document_images_user_name ON document_images(user_id, img_name)")
 
@@ -1487,15 +1480,22 @@ def _generate_otp() -> str:
 
 
 def _send_otp_email(recipient_email: str, otp: str) -> bool:
-    """Send the OTP verification email. Tries Resend HTTP API first (works on Render),
-    then falls back to Gmail SMTP (works locally)."""
+    """Send the OTP verification email via Gmail SMTP. Returns True on success."""
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        logger.warning("SMTP credentials not configured — OTP email cannot be sent.")
+        return False
 
-    subject = f"HorizonOCR — Your verification code is {otp}"
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"HorizonOCR — Your verification code is {otp}"
+    msg["From"] = f"HorizonOCR <{SMTP_EMAIL}>"
+    msg["To"] = recipient_email
+
     plain_body = (
         f"Your HorizonOCR verification code is: {otp}\n\n"
         f"This code will expire in {OTP_EXPIRY_SECONDS // 60} minutes.\n"
         f"If you did not request this, you can safely ignore this email."
     )
+
     html_body = f"""\
     <html>
     <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;">
@@ -1531,92 +1531,18 @@ def _send_otp_email(recipient_email: str, otp: str) -> bool:
     </html>
     """
 
-    # ── Strategy 1: Resend HTTP API (HTTPS port 443 — works on Render) ──────
-    if RESEND_API_KEY:
-        try:
-            from_email = f"HorizonOCR <{SMTP_EMAIL}>" if SMTP_EMAIL else "HorizonOCR <onboarding@resend.dev>"
-            payload = json.dumps({
-                "from": from_email,
-                "to": [recipient_email],
-                "subject": subject,
-                "html": html_body,
-                "text": plain_body,
-            }).encode("utf-8")
+    msg.attach(MIMEText(plain_body, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
 
-            req = urllib.request.Request(
-                "https://api.resend.com/emails",
-                data=payload,
-                headers={
-                    "Authorization": f"Bearer {RESEND_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                resp_body = resp.read().decode("utf-8")
-                if resp.status in (200, 201):
-                    logger.info("OTP email sent to %s via Resend HTTP API (status %s)", recipient_email, resp.status)
-                    return True
-                else:
-                    logger.info("Resend API returned status %s for %s: %s", resp.status, recipient_email, resp_body)
-        except Exception as e:
-            logger.info("Resend HTTP API failed for %s: %s", recipient_email, e)
-
-    # ── Strategy 2: Gmail SMTP (works locally, may be blocked on cloud) ─────
-    if SMTP_EMAIL and SMTP_PASSWORD:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"HorizonOCR <{SMTP_EMAIL}>"
-        msg["To"] = recipient_email
-        msg.attach(MIMEText(plain_body, "plain"))
-        msg.attach(MIMEText(html_body, "html"))
-
-        # Try IPv4-resolved TLS:587 first
-        try:
-            ipv4_addrs = [
-                info[4][0]
-                for info in socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
-            ]
-            if ipv4_addrs:
-                with smtplib.SMTP(ipv4_addrs[0], 587, timeout=8) as smtp:
-                    smtp.ehlo()
-                    smtp.starttls()
-                    smtp.ehlo()
-                    smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-                    smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-                logger.info("OTP email sent to %s via SMTP TLS:587 (IPv4 %s)", recipient_email, ipv4_addrs[0])
-                return True
-        except Exception as e:
-            logger.info("SMTP TLS:587 IPv4 failed for %s: %s", recipient_email, e)
-
-        # Try hostname TLS:587
-        try:
-            with smtplib.SMTP("smtp.gmail.com", 587, timeout=8) as smtp:
-                smtp.ehlo()
-                smtp.starttls()
-                smtp.ehlo()
-                smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-                smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-            logger.info("OTP email sent to %s via SMTP TLS:587 (hostname)", recipient_email)
-            return True
-        except Exception as e:
-            logger.info("SMTP TLS:587 hostname failed for %s: %s", recipient_email, e)
-
-        # Try SSL:465
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as smtp:
-                smtp.ehlo()
-                smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-                smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-            logger.info("OTP email sent to %s via SMTP SSL:465", recipient_email)
-            return True
-        except Exception as e:
-            logger.info("SMTP SSL:465 failed for %s: %s", recipient_email, e)
-
-    logger.info("ALL email delivery strategies failed for %s", recipient_email)
-    return False
-
-
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as smtp:
+            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+            smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+        logger.info("OTP email sent to %s", recipient_email)
+        return True
+    except Exception:
+        logger.exception("Failed to send OTP email to %s", recipient_email)
+        return False
 
 
 def _cleanup_expired_otps():
@@ -1625,56 +1551,6 @@ def _cleanup_expired_otps():
     expired = [email for email, data in _pending_otps.items() if now - data["created_at"] > OTP_EXPIRY_SECONDS]
     for email in expired:
         del _pending_otps[email]
-
-
-# --- SMTP DIAGNOSTIC ENDPOINT (for debugging Render email issues) ---
-
-@app.route("/api/smtp-diagnostic", methods=["GET"])
-def smtp_diagnostic():
-    """Diagnostic endpoint to test SMTP connectivity from the server."""
-    results = {
-        "smtp_email_configured": bool(SMTP_EMAIL),
-        "smtp_password_configured": bool(SMTP_PASSWORD),
-        "smtp_email": SMTP_EMAIL[:3] + "***" if SMTP_EMAIL else "(not set)",
-        "strategies": []
-    }
-
-    if not SMTP_EMAIL or not SMTP_PASSWORD:
-        results["error"] = "SMTP_EMAIL or SMTP_PASSWORD environment variables are NOT set on Render."
-        return jsonify(results), 503
-
-    # Test 1: DNS resolution
-    try:
-        addrs = socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
-        ipv4_list = [info[4][0] for info in addrs]
-        results["dns_ipv4_resolved"] = ipv4_list
-    except Exception as e:
-        results["dns_ipv4_resolved"] = f"FAILED: {e}"
-
-    # Test 2: TLS:587 via resolved IPv4
-    try:
-        ip = ipv4_list[0] if ipv4_list else "smtp.gmail.com"
-        with smtplib.SMTP(ip, 587, timeout=8) as smtp:
-            smtp.ehlo()
-            smtp.starttls()
-            smtp.ehlo()
-            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-            results["strategies"].append({"method": f"TLS:587 (IPv4 {ip})", "status": "SUCCESS"})
-    except Exception as e:
-        results["strategies"].append({"method": f"TLS:587 (IPv4)", "status": f"FAILED: {e}"})
-
-    # Test 3: SSL:465 via hostname
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as smtp:
-            smtp.ehlo()
-            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-            results["strategies"].append({"method": "SSL:465 (hostname)", "status": "SUCCESS"})
-    except Exception as e:
-        results["strategies"].append({"method": "SSL:465 (hostname)", "status": f"FAILED: {e}"})
-
-    any_success = any(s["status"] == "SUCCESS" for s in results["strategies"])
-    results["overall"] = "SMTP READY — OTP emails will work!" if any_success else "ALL SMTP METHODS FAILED — check Render network/firewall"
-    return jsonify(results), 200 if any_success else 503
 
 
 # --- AUTHENTICATION ENDPOINTS ---
@@ -1717,14 +1593,10 @@ def register():
     }
 
     if not _send_otp_email(email, otp):
-        # Do NOT create account without OTP — remove pending entry and return error
-        if email in _pending_otps:
-            del _pending_otps[email]
-        logger.info("OTP email failed for %s — account NOT created (OTP mandatory).", email)
-        return jsonify({"error": "Unable to send verification email. Please check your email address and try again."}), 503
+        del _pending_otps[email]
+        return jsonify({"error": "Unable to send verification email. Please try again later or contact support."}), 503
 
     return jsonify({"status": "otp_sent", "email": email, "message": "A verification code has been sent to your email."}), 200
-
 
 
 @app.route("/api/verify-otp", methods=["POST"])
@@ -1996,10 +1868,12 @@ IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
 
 
 @app.route("/api/ocr", methods=["POST"])
-@rate_limit(30, 3600)
+@rate_limit(12, 3600)
 def process_ocr():
     start_time = time.time()
-    user_id = session.get("user_id") or 1  # Fallback to guest user #1 if unauthenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized. Please sign in to process documents."}), 401
     if "file" not in request.files:
         return jsonify({"error": "Select a file to process."}), 400
 
@@ -2018,35 +1892,18 @@ def process_ocr():
         uploaded_file.save(filepath)
         invalid_reason = _verify_saved_upload(filepath, ext)
         if invalid_reason:
-            logger.warning("Upload verification warning: %s — proceeding with robust fallback", invalid_reason)
+            return jsonify({"error": f"The uploaded document could not be processed: {invalid_reason}"}), 400
 
-        page_images = []
-        try:
-            page_images = render_doc_pages_to_base64(filepath, dpi=150)
-        except Exception:
-            logger.warning("Could not render page previews for %s", filename)
-
+        page_images = render_doc_pages_to_base64(filepath, dpi=150)
         page_bboxes = {}
         if ext in IMAGE_EXTS:
             markdown_output, page_count, page_bboxes = _process_image_file(filepath, filename)
         else:
-            try:
-                markdown_output, page_count = extract_layout_and_markdown(filepath, user_id=user_id)
-                text_bbox_data = extract_text_bboxes_from_pdf(filepath)
-                table_data = extract_tables_from_pdf(filepath)
-                image_data = extract_images_from_pdf(filepath)
-                page_bboxes = merge_page_data(text_bbox_data, table_data, image_data)
-            except Exception:
-                logger.exception("Advanced layout extraction failed for %s, using fallback text extraction", filename)
-                try:
-                    with fitz.open(filepath) as doc:
-                        page_count = len(doc)
-                        pages_text = [page.get_text("text") or "" for page in doc]
-                    markdown_output = "\n\n---\n\n".join(pages_text) if any(pages_text) else f"# {filename}\n\n*Document processed successfully.*"
-                except Exception:
-                    markdown_output = f"# {filename}\n\n*Document processed successfully.*"
-                    page_count = 1
-                page_bboxes = {}
+            markdown_output, page_count = extract_layout_and_markdown(filepath, user_id=user_id)
+            text_bbox_data = extract_text_bboxes_from_pdf(filepath)
+            table_data = extract_tables_from_pdf(filepath)
+            image_data = extract_images_from_pdf(filepath)
+            page_bboxes = merge_page_data(text_bbox_data, table_data, image_data)
 
         elapsed = time.time() - start_time
         word_count = len(markdown_output.split())
@@ -2054,15 +1911,12 @@ def process_ocr():
         token_count = max(10, int(word_count * 1.3), char_based) if word_count else char_based
         tps = round(token_count / max(elapsed, 0.1), 1)
 
-        try:
-            with get_db() as conn:
-                conn.execute(
-                    """INSERT INTO documents (user_id, filename, mode, markdown_output, tokens, tps, decode_time, visualization_data)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (user_id, filename, mode, markdown_output, token_count, tps, round(elapsed, 2), json.dumps(page_bboxes or {})),
-                )
-        except Exception:
-            logger.warning("Unable to save document record to database (proceeding to return OCR result)")
+        with get_db() as conn:
+            conn.execute(
+                """INSERT INTO documents (user_id, filename, mode, markdown_output, tokens, tps, decode_time)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, filename, mode, markdown_output, token_count, tps, round(elapsed, 2)),
+            )
 
         return jsonify({
             "status": "success",
@@ -2077,7 +1931,7 @@ def process_ocr():
             "page_bboxes": page_bboxes,
         })
     except Exception:
-        logger.exception("Document processing failed for user %s", user_id)
+        logger.exception("Document processing failed for authenticated user")
         return jsonify({"error": "The document could not be processed. Verify the file and try again."}), 422
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -2491,51 +2345,13 @@ def live_admin_get_documents():
 
     with get_db() as conn:
         rows = conn.execute("""
-            SELECT id, user_id, filename, mode, markdown_output, tokens, tps, decode_time, visualization_data, created_at
+            SELECT id, user_id, filename, mode, markdown_output, tokens, tps, decode_time, created_at
             FROM documents
             ORDER BY id DESC
             LIMIT 200
         """).fetchall()
 
     return jsonify({"documents": [dict(r) for r in rows]})
-
-@app.route("/api/admin/live/visualizations", methods=["GET", "OPTIONS"])
-def live_admin_get_visualizations():
-    if request.method == "OPTIONS":
-        return "", 204
-    if not _verify_admin_access():
-        return jsonify({"error": "Unauthorized"}), 403
-
-    with get_db() as conn:
-        rows = conn.execute("""
-            SELECT id, user_id, filename, mode, tokens, tps, decode_time, visualization_data, created_at
-            FROM documents
-            ORDER BY id DESC
-            LIMIT 200
-        """).fetchall()
-
-    visualizations = []
-    for r in rows:
-        v_raw = r["visualization_data"]
-        v_parsed = None
-        if v_raw:
-            try:
-                v_parsed = json.loads(v_raw)
-            except Exception:
-                v_parsed = None
-        visualizations.append({
-            "id": r["id"],
-            "user_id": r["user_id"],
-            "filename": r["filename"],
-            "mode": r["mode"],
-            "tokens": r["tokens"],
-            "tps": r["tps"],
-            "decode_time": r["decode_time"],
-            "created_at": r["created_at"],
-            "visualization_data": v_parsed
-        })
-
-    return jsonify({"visualizations": visualizations})
 
 @app.route("/api/admin/live/documents/delete", methods=["POST", "OPTIONS"])
 def live_admin_delete_document():

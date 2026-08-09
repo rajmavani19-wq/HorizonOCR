@@ -189,38 +189,26 @@ async function handleAuthSubmit(e) {
   }
 
   // Register mode — send OTP.
-  let coldStartTimer = null;
   try {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending verification code...';
-    coldStartTimer = setTimeout(() => {
-      if (submitBtn && submitBtn.disabled) {
-        submitBtn.textContent = 'Waking up server & sending code...';
-      }
-    }, 4000);
-
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password })
     });
-
-    if (coldStartTimer) clearTimeout(coldStartTimer);
     const data = await res.json();
-
     if (!res.ok) {
-      errorAlert.textContent = data.error || 'Registration failed. Please try again.';
+      errorAlert.textContent = data.error || 'Registration failed';
       errorAlert.style.display = 'block';
       return;
     }
     if (data.status === 'otp_sent') {
       appState.pendingOtpEmail = data.email;
       showOtpSection(data.email);
-      if (typeof showNotification === 'function') showNotification(`Verification code sent to ${data.email}`, 'info');
     }
   } catch (err) {
-    if (coldStartTimer) clearTimeout(coldStartTimer);
-    errorAlert.textContent = 'Server connection error. Please try again.';
+    errorAlert.textContent = 'Server communication error';
     errorAlert.style.display = 'block';
   } finally {
     submitBtn.disabled = false;
