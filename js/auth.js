@@ -134,10 +134,16 @@ async function handleAuthSubmit(e) {
   }
 
   // Send OTP request to backend
+  let coldStartTimer = null;
   try {
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = 'Sending verification code...';
+      coldStartTimer = setTimeout(() => {
+        if (submitBtn && submitBtn.disabled) {
+          submitBtn.textContent = 'Waking up server & sending code...';
+        }
+      }, 4000);
     }
     const res = await apiFetch('/api/register', {
       method: 'POST',
@@ -145,10 +151,12 @@ async function handleAuthSubmit(e) {
       body: JSON.stringify({ username, email, password })
     });
 
+    if (coldStartTimer) clearTimeout(coldStartTimer);
     const data = await res.json();
+
     if (!res.ok) {
       if (errorAlert) {
-        errorAlert.textContent = data.error || 'Registration failed';
+        errorAlert.textContent = data.error || 'Registration failed. Please try again.';
         errorAlert.style.display = 'block';
       }
       return;
@@ -157,6 +165,7 @@ async function handleAuthSubmit(e) {
     if (data.status === 'otp_sent') {
       appState.pendingOtpEmail = data.email;
       showOtpSection(data.email);
+      if (typeof showNotification === 'function') showNotification(`Verification code sent to ${data.email}`, 'info');
     } else if (data.status === 'success' && data.user) {
       appState.user = data.user;
       appState.authenticated = true;
@@ -165,8 +174,9 @@ async function handleAuthSubmit(e) {
       if (typeof showNotification === 'function') showNotification('Account created successfully!', 'success');
     }
   } catch (err) {
+    if (coldStartTimer) clearTimeout(coldStartTimer);
     if (errorAlert) {
-      errorAlert.textContent = 'Server communication error';
+      errorAlert.textContent = 'Server connection error. Please try again.';
       errorAlert.style.display = 'block';
     }
   } finally {
