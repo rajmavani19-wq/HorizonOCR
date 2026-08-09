@@ -84,8 +84,8 @@ GITHUB_API_USER_URL = "https://api.github.com/user"
 GITHUB_API_EMAILS_URL = "https://api.github.com/user/emails"
 
 # SMTP configuration for OTP email verification.
-SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "").strip().lower()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").replace("\t", "").strip()
 OTP_EXPIRY_SECONDS = int(os.environ.get("OTP_EXPIRY_SECONDS", "600"))  # 10 minutes
 OTP_LENGTH = 6
 
