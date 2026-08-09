@@ -217,12 +217,6 @@ async function handleAuthSubmit(e) {
       appState.pendingOtpEmail = data.email;
       showOtpSection(data.email);
       if (typeof showNotification === 'function') showNotification(`Verification code sent to ${data.email}`, 'info');
-    } else if (data.status === 'success' && data.user) {
-      appState.user = data.user;
-      appState.authenticated = true;
-      if (typeof updateAuthUI === 'function') updateAuthUI();
-      if (typeof switchView === 'function') switchView('upload');
-      if (typeof showNotification === 'function') showNotification('Account created successfully!', 'success');
     }
   } catch (err) {
     if (coldStartTimer) clearTimeout(coldStartTimer);

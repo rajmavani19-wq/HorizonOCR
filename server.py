@@ -19,6 +19,7 @@ import hmac
 import re
 import random
 import smtplib
+import socket
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -1538,24 +1539,66 @@ def _send_otp_email(recipient_email: str, otp: str) -> bool:
     msg.attach(MIMEText(plain_body, "plain"))
     msg.attach(MIMEText(html_body, "html"))
 
-    # Try Port 587 TLS first (most reliable on cloud hosts & ISPs), fallback to Port 465 SSL
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=4) as smtp:
+    # ---------------------------------------------------------------------------
+    # Render / Docker cloud fix:  Force IPv4 + hardcoded Gmail IPs as fallback
+    # Many cloud containers lack IPv6 routes → [Errno 101] Network is unreachable
+    # ---------------------------------------------------------------------------
+    GMAIL_SMTP_IPV4_FALLBACKS = ["142.250.115.109", "142.251.163.109", "74.125.200.109"]
+
+    def _try_smtp_tls(host, port=587, timeout=10):
+        """Attempt SMTP STARTTLS connection."""
+        with smtplib.SMTP(host, port, timeout=timeout) as smtp:
+            smtp.ehlo()
             smtp.starttls()
+            smtp.ehlo()
             smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
             smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-        logger.info("OTP email sent to %s via TLS:587", recipient_email)
-        return True
-    except Exception as e1:
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=4) as smtp:
-                smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-                smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-            logger.info("OTP email sent to %s via SSL:465", recipient_email)
+
+    def _try_smtp_ssl(host, port=465, timeout=10):
+        """Attempt SMTP SSL connection."""
+        with smtplib.SMTP_SSL(host, port, timeout=timeout) as smtp:
+            smtp.ehlo()
+            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+            smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+
+    # Strategy 1:  Resolve smtp.gmail.com → IPv4 only, then connect
+    last_error = None
+    try:
+        ipv4_addrs = [
+            info[4][0]
+            for info in socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
+        ]
+        if ipv4_addrs:
+            _try_smtp_tls(ipv4_addrs[0])
+            logger.info("OTP email sent to %s via TLS:587 (resolved IPv4 %s)", recipient_email, ipv4_addrs[0])
             return True
-        except Exception as e2:
-            logger.info("SMTP email delivery skipped for %s (%s) — proceeding with account creation", recipient_email, e2)
-            return False
+    except Exception as e:
+        last_error = e
+        logger.info("SMTP TLS:587 resolved-IPv4 failed for %s: %s", recipient_email, e)
+
+    # Strategy 2:  Try hostname directly (works if platform has proper dual-stack)
+    for method_name, method_fn in [("TLS:587", _try_smtp_tls), ("SSL:465", _try_smtp_ssl)]:
+        try:
+            method_fn("smtp.gmail.com")
+            logger.info("OTP email sent to %s via %s (hostname)", recipient_email, method_name)
+            return True
+        except Exception as e:
+            last_error = e
+            logger.info("SMTP %s hostname failed for %s: %s", method_name, recipient_email, e)
+
+    # Strategy 3:  Hardcoded Gmail IPv4 addresses (ultimate fallback)
+    for ip in GMAIL_SMTP_IPV4_FALLBACKS:
+        for method_name, method_fn in [("TLS:587", _try_smtp_tls), ("SSL:465", _try_smtp_ssl)]:
+            try:
+                method_fn(ip)
+                logger.info("OTP email sent to %s via %s (hardcoded IP %s)", recipient_email, method_name, ip)
+                return True
+            except Exception as e:
+                last_error = e
+
+    logger.info("ALL SMTP strategies failed for %s — last error: %s", recipient_email, last_error)
+    return False
+
 
 
 def _cleanup_expired_otps():
@@ -1564,6 +1607,56 @@ def _cleanup_expired_otps():
     expired = [email for email, data in _pending_otps.items() if now - data["created_at"] > OTP_EXPIRY_SECONDS]
     for email in expired:
         del _pending_otps[email]
+
+
+# --- SMTP DIAGNOSTIC ENDPOINT (for debugging Render email issues) ---
+
+@app.route("/api/smtp-diagnostic", methods=["GET"])
+def smtp_diagnostic():
+    """Diagnostic endpoint to test SMTP connectivity from the server."""
+    results = {
+        "smtp_email_configured": bool(SMTP_EMAIL),
+        "smtp_password_configured": bool(SMTP_PASSWORD),
+        "smtp_email": SMTP_EMAIL[:3] + "***" if SMTP_EMAIL else "(not set)",
+        "strategies": []
+    }
+
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        results["error"] = "SMTP_EMAIL or SMTP_PASSWORD environment variables are NOT set on Render."
+        return jsonify(results), 503
+
+    # Test 1: DNS resolution
+    try:
+        addrs = socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
+        ipv4_list = [info[4][0] for info in addrs]
+        results["dns_ipv4_resolved"] = ipv4_list
+    except Exception as e:
+        results["dns_ipv4_resolved"] = f"FAILED: {e}"
+
+    # Test 2: TLS:587 via resolved IPv4
+    try:
+        ip = ipv4_list[0] if ipv4_list else "smtp.gmail.com"
+        with smtplib.SMTP(ip, 587, timeout=8) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+            results["strategies"].append({"method": f"TLS:587 (IPv4 {ip})", "status": "SUCCESS"})
+    except Exception as e:
+        results["strategies"].append({"method": f"TLS:587 (IPv4)", "status": f"FAILED: {e}"})
+
+    # Test 3: SSL:465 via hostname
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as smtp:
+            smtp.ehlo()
+            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+            results["strategies"].append({"method": "SSL:465 (hostname)", "status": "SUCCESS"})
+    except Exception as e:
+        results["strategies"].append({"method": "SSL:465 (hostname)", "status": f"FAILED: {e}"})
+
+    any_success = any(s["status"] == "SUCCESS" for s in results["strategies"])
+    results["overall"] = "SMTP READY — OTP emails will work!" if any_success else "ALL SMTP METHODS FAILED — check Render network/firewall"
+    return jsonify(results), 200 if any_success else 503
 
 
 # --- AUTHENTICATION ENDPOINTS ---
@@ -1606,32 +1699,14 @@ def register():
     }
 
     if not _send_otp_email(email, otp):
-        logger.info("Direct account created for %s.", email)
-        try:
-            with get_db() as conn:
-                cursor = conn.execute(
-                    "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-                    (username, email, generate_password_hash(password)),
-                )
-                user_id = cursor.lastrowid
-            if email in _pending_otps:
-                del _pending_otps[email]
-            session.clear()
-            session.permanent = True
-            session["user_id"] = user_id
-            session["username"] = username
-            _csrf_token()
-            return jsonify({
-                "status": "success",
-                "user": {"id": user_id, "username": username, "email": email},
-                "message": "Account created successfully!"
-            }), 201
-        except sqlite3.IntegrityError:
-            if email in _pending_otps:
-                del _pending_otps[email]
-            return jsonify({"error": "An account with this username or email already exists."}), 409
+        # Do NOT create account without OTP — remove pending entry and return error
+        if email in _pending_otps:
+            del _pending_otps[email]
+        logger.info("OTP email failed for %s — account NOT created (OTP mandatory).", email)
+        return jsonify({"error": "Unable to send verification email. Please check your email address and try again."}), 503
 
     return jsonify({"status": "otp_sent", "email": email, "message": "A verification code has been sent to your email."}), 200
+
 
 
 @app.route("/api/verify-otp", methods=["POST"])
