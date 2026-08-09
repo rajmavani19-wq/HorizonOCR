@@ -87,6 +87,8 @@ GITHUB_API_EMAILS_URL = "https://api.github.com/user/emails"
 # SMTP configuration for OTP email verification.
 SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "").strip().lower()
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").replace("\t", "").strip()
+# Resend.com HTTP API — works on Render (HTTPS port 443, never blocked by firewalls).
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 OTP_EXPIRY_SECONDS = int(os.environ.get("OTP_EXPIRY_SECONDS", "600"))  # 10 minutes
 OTP_LENGTH = 6
 
@@ -1485,22 +1487,15 @@ def _generate_otp() -> str:
 
 
 def _send_otp_email(recipient_email: str, otp: str) -> bool:
-    """Send the OTP verification email via Gmail SMTP. Returns True on success."""
-    if not SMTP_EMAIL or not SMTP_PASSWORD:
-        logger.info("SMTP credentials not configured — enabling direct account creation.")
-        return False
+    """Send the OTP verification email. Tries Resend HTTP API first (works on Render),
+    then falls back to Gmail SMTP (works locally)."""
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"HorizonOCR — Your verification code is {otp}"
-    msg["From"] = f"HorizonOCR <{SMTP_EMAIL}>"
-    msg["To"] = recipient_email
-
+    subject = f"HorizonOCR — Your verification code is {otp}"
     plain_body = (
         f"Your HorizonOCR verification code is: {otp}\n\n"
         f"This code will expire in {OTP_EXPIRY_SECONDS // 60} minutes.\n"
         f"If you did not request this, you can safely ignore this email."
     )
-
     html_body = f"""\
     <html>
     <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;">
@@ -1536,68 +1531,91 @@ def _send_otp_email(recipient_email: str, otp: str) -> bool:
     </html>
     """
 
-    msg.attach(MIMEText(plain_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
-
-    # ---------------------------------------------------------------------------
-    # Render / Docker cloud fix:  Force IPv4 + hardcoded Gmail IPs as fallback
-    # Many cloud containers lack IPv6 routes → [Errno 101] Network is unreachable
-    # ---------------------------------------------------------------------------
-    GMAIL_SMTP_IPV4_FALLBACKS = ["142.250.115.109", "142.251.163.109", "74.125.200.109"]
-
-    def _try_smtp_tls(host, port=587, timeout=10):
-        """Attempt SMTP STARTTLS connection."""
-        with smtplib.SMTP(host, port, timeout=timeout) as smtp:
-            smtp.ehlo()
-            smtp.starttls()
-            smtp.ehlo()
-            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-            smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-
-    def _try_smtp_ssl(host, port=465, timeout=10):
-        """Attempt SMTP SSL connection."""
-        with smtplib.SMTP_SSL(host, port, timeout=timeout) as smtp:
-            smtp.ehlo()
-            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-            smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-
-    # Strategy 1:  Resolve smtp.gmail.com → IPv4 only, then connect
-    last_error = None
-    try:
-        ipv4_addrs = [
-            info[4][0]
-            for info in socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
-        ]
-        if ipv4_addrs:
-            _try_smtp_tls(ipv4_addrs[0])
-            logger.info("OTP email sent to %s via TLS:587 (resolved IPv4 %s)", recipient_email, ipv4_addrs[0])
-            return True
-    except Exception as e:
-        last_error = e
-        logger.info("SMTP TLS:587 resolved-IPv4 failed for %s: %s", recipient_email, e)
-
-    # Strategy 2:  Try hostname directly (works if platform has proper dual-stack)
-    for method_name, method_fn in [("TLS:587", _try_smtp_tls), ("SSL:465", _try_smtp_ssl)]:
+    # ── Strategy 1: Resend HTTP API (HTTPS port 443 — works on Render) ──────
+    if RESEND_API_KEY:
         try:
-            method_fn("smtp.gmail.com")
-            logger.info("OTP email sent to %s via %s (hostname)", recipient_email, method_name)
+            from_email = f"HorizonOCR <{SMTP_EMAIL}>" if SMTP_EMAIL else "HorizonOCR <onboarding@resend.dev>"
+            payload = json.dumps({
+                "from": from_email,
+                "to": [recipient_email],
+                "subject": subject,
+                "html": html_body,
+                "text": plain_body,
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                resp_body = resp.read().decode("utf-8")
+                if resp.status in (200, 201):
+                    logger.info("OTP email sent to %s via Resend HTTP API (status %s)", recipient_email, resp.status)
+                    return True
+                else:
+                    logger.info("Resend API returned status %s for %s: %s", resp.status, recipient_email, resp_body)
+        except Exception as e:
+            logger.info("Resend HTTP API failed for %s: %s", recipient_email, e)
+
+    # ── Strategy 2: Gmail SMTP (works locally, may be blocked on cloud) ─────
+    if SMTP_EMAIL and SMTP_PASSWORD:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"HorizonOCR <{SMTP_EMAIL}>"
+        msg["To"] = recipient_email
+        msg.attach(MIMEText(plain_body, "plain"))
+        msg.attach(MIMEText(html_body, "html"))
+
+        # Try IPv4-resolved TLS:587 first
+        try:
+            ipv4_addrs = [
+                info[4][0]
+                for info in socket.getaddrinfo("smtp.gmail.com", 587, socket.AF_INET, socket.SOCK_STREAM)
+            ]
+            if ipv4_addrs:
+                with smtplib.SMTP(ipv4_addrs[0], 587, timeout=8) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls()
+                    smtp.ehlo()
+                    smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+                    smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+                logger.info("OTP email sent to %s via SMTP TLS:587 (IPv4 %s)", recipient_email, ipv4_addrs[0])
+                return True
+        except Exception as e:
+            logger.info("SMTP TLS:587 IPv4 failed for %s: %s", recipient_email, e)
+
+        # Try hostname TLS:587
+        try:
+            with smtplib.SMTP("smtp.gmail.com", 587, timeout=8) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.ehlo()
+                smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+                smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+            logger.info("OTP email sent to %s via SMTP TLS:587 (hostname)", recipient_email)
             return True
         except Exception as e:
-            last_error = e
-            logger.info("SMTP %s hostname failed for %s: %s", method_name, recipient_email, e)
+            logger.info("SMTP TLS:587 hostname failed for %s: %s", recipient_email, e)
 
-    # Strategy 3:  Hardcoded Gmail IPv4 addresses (ultimate fallback)
-    for ip in GMAIL_SMTP_IPV4_FALLBACKS:
-        for method_name, method_fn in [("TLS:587", _try_smtp_tls), ("SSL:465", _try_smtp_ssl)]:
-            try:
-                method_fn(ip)
-                logger.info("OTP email sent to %s via %s (hardcoded IP %s)", recipient_email, method_name, ip)
-                return True
-            except Exception as e:
-                last_error = e
+        # Try SSL:465
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as smtp:
+                smtp.ehlo()
+                smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+                smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+            logger.info("OTP email sent to %s via SMTP SSL:465", recipient_email)
+            return True
+        except Exception as e:
+            logger.info("SMTP SSL:465 failed for %s: %s", recipient_email, e)
 
-    logger.info("ALL SMTP strategies failed for %s — last error: %s", recipient_email, last_error)
+    logger.info("ALL email delivery strategies failed for %s", recipient_email)
     return False
+
 
 
 
