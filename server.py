@@ -1538,24 +1538,33 @@ def _send_otp_email(recipient_email: str, otp: str) -> bool:
     msg.attach(MIMEText(plain_body, "plain"))
     msg.attach(MIMEText(html_body, "html"))
 
-    # Try Port 587 TLS first (most reliable on cloud hosts & ISPs), fallback to Port 465 SSL
+    # Force IPv4 socket resolution to prevent '[Errno 101] Network is unreachable' on cloud hosts (Render/Docker)
+    orig_getaddrinfo = socket.getaddrinfo
+    def ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+    socket.getaddrinfo = ipv4_getaddrinfo
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=4) as smtp:
-            smtp.starttls()
-            smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
-            smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-        logger.info("OTP email sent to %s via TLS:587", recipient_email)
-        return True
-    except Exception as e1:
+        # Try Port 587 TLS first (most reliable on cloud hosts & ISPs), fallback to Port 465 SSL
         try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=4) as smtp:
+            with smtplib.SMTP("smtp.gmail.com", 587, timeout=6) as smtp:
+                smtp.starttls()
                 smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
                 smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-            logger.info("OTP email sent to %s via SSL:465", recipient_email)
+            logger.info("OTP email sent to %s via TLS:587 (IPv4)", recipient_email)
             return True
-        except Exception as e2:
-            logger.info("SMTP email delivery skipped for %s (%s) — proceeding with account creation", recipient_email, e2)
-            return False
+        except Exception as e1:
+            try:
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=6) as smtp:
+                    smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+                    smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+                logger.info("OTP email sent to %s via SSL:465 (IPv4)", recipient_email)
+                return True
+            except Exception as e2:
+                logger.info("SMTP email delivery skipped for %s (%s) — proceeding with account creation", recipient_email, e2)
+                return False
+    finally:
+        socket.getaddrinfo = orig_getaddrinfo
 
 
 def _cleanup_expired_otps():
