@@ -161,8 +161,8 @@ async function handleAuthSubmit(e) {
       appState.user = data.user;
       appState.authenticated = true;
       if (typeof updateAuthUI === 'function') updateAuthUI();
-      if (typeof hideAuthModal === 'function') hideAuthModal();
-      if (typeof showToast === 'function') showToast('Account created successfully!', 'success');
+      if (typeof switchView === 'function') switchView('upload');
+      if (typeof showNotification === 'function') showNotification('Account created successfully!', 'success');
     }
   } catch (err) {
     if (errorAlert) {

@@ -1538,15 +1538,24 @@ def _send_otp_email(recipient_email: str, otp: str) -> bool:
     msg.attach(MIMEText(plain_body, "plain"))
     msg.attach(MIMEText(html_body, "html"))
 
+    # Try Port 587 TLS first (most reliable on cloud hosts & ISPs), fallback to Port 465 SSL
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as smtp:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=4) as smtp:
+            smtp.starttls()
             smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
             smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
-        logger.info("OTP email sent to %s", recipient_email)
+        logger.info("OTP email sent to %s via TLS:587", recipient_email)
         return True
-    except Exception as err:
-        logger.info("SMTP email delivery skipped for %s (%s) — proceeding with account creation", recipient_email, err)
-        return False
+    except Exception as e1:
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=4) as smtp:
+                smtp.login(SMTP_EMAIL, SMTP_PASSWORD)
+                smtp.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
+            logger.info("OTP email sent to %s via SSL:465", recipient_email)
+            return True
+        except Exception as e2:
+            logger.info("SMTP email delivery skipped for %s (%s) — proceeding with account creation", recipient_email, e2)
+            return False
 
 
 def _cleanup_expired_otps():
