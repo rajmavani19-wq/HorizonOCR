@@ -1,0 +1,321 @@
+/* 
+  ================================================================
+  HorizonOCR - Complete Multi-Device Responsive UI/UX Engine
+  Coverage:
+  1. Mobile UI (<= 480px)
+  2. Tablet UI (481px - 768px)
+  3. Laptop UI (769px - 1024px)
+  4. Desktop / PC (1025px - 1440px)
+  5. Large Desktop / Ultrawide (1441px - 2560px)
+  6. TV UI / 4K Displays (>= 2561px)
+  ================================================================
+*/
+
+/* ════════════════════════════════════════════════════════════════
+   1. MOBILE UI (Portrait & Small Smartphones: <= 480px)
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  html {
+    font-size: 13.5px;
+  }
+
+  body {
+    padding-bottom: 20px;
+  }
+
+  .navbar {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .brand-title {
+    font-size: 17px;
+  }
+
+  .nav-right {
+    gap: 8px;
+  }
+
+  .nav-right .btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .page-container,
+  .page-container-wide {
+    padding: 16px 14px;
+  }
+
+  /* Hero & Title Scaling */
+  .hero-title,
+  .page-title-large {
+    font-size: 24px !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.5px !important;
+  }
+
+  .hero-subtitle,
+  .page-subtitle {
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Single Column Stacking */
+  .stat-grid-4,
+  .pillar-grid,
+  .about-grid,
+  .contact-grid,
+  .feature-grid,
+  .hero-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Touch Target & Form Accessibility */
+  .btn,
+  .form-input,
+  .contact-input,
+  .contact-select,
+  .contact-textarea {
+    min-height: 44px;
+    font-size: 14px !important;
+  }
+
+  .auth-container,
+  .about-card,
+  .contact-form-card,
+  .faq-card-box,
+  .content-card-box {
+    padding: 20px 16px !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  /* Workspace Responsive Stack */
+  .workspace-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    gap: 16px !important;
+    padding: 10px !important;
+  }
+
+  .workspace-panel {
+    min-height: 380px !important;
+    max-height: 550px !important;
+    width: 100% !important;
+  }
+
+  /* Dashboard History Table Mobile Scroll */
+  .dashboard-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-table th,
+  .dashboard-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   2. TABLET UI (Large Phones & Tablets: 481px - 768px)
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 481px) and (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  .navbar {
+    padding: 12px 24px;
+  }
+
+  .page-container,
+  .page-container-wide {
+    padding: 24px 20px;
+  }
+
+  .hero-title,
+  .page-title-large {
+    font-size: 30px !important;
+    line-height: 1.25 !important;
+  }
+
+  .stat-grid-4,
+  .hero-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  .pillar-grid,
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .workspace-layout {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .workspace-panel {
+    min-height: 420px !important;
+    width: 100% !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   3. LAPTOP UI (Compact Laptops & iPads in Landscape: 769px - 1024px)
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page-container-wide {
+    padding: 32px 28px;
+  }
+
+  .hero-title,
+  .page-title-large {
+    font-size: 36px !important;
+  }
+
+  .stat-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .pillar-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .workspace-layout {
+    gap: 12px !important;
+  }
+
+  .workspace-panel {
+    min-width: 0 !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   4. DESKTOP / PC (Standard Monitors: 1025px - 1440px)
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .page-container-wide {
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+
+  .stat-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .pillar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   5. LARGE DESKTOP / ULTRAWIDE (QHD/2K & Ultrawide: 1441px - 2560px)
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 1441px) and (max-width: 2560px) {
+  html {
+    font-size: 16px;
+  }
+
+  .page-container-wide {
+    max-width: 1680px;
+    margin: 0 auto;
+  }
+
+  .hero-title,
+  .page-title-large {
+    font-size: 46px !important;
+  }
+
+  .stat-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+  }
+
+  .pillar-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .workspace-layout {
+    gap: 20px;
+    padding: 20px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   6. TV UI / 4K DISPLAYS (Smart TVs, 4K Monitors: >= 2561px)
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 2561px) {
+  html {
+    font-size: 20px !important;
+  }
+
+  body {
+    letter-spacing: 0.2px;
+  }
+
+  .page-container-wide {
+    max-width: 2200px;
+    margin: 0 auto;
+    padding: 60px 48px;
+  }
+
+  .navbar {
+    padding: 24px 60px;
+  }
+
+  .brand-title {
+    font-size: 26px;
+  }
+
+  .hero-title,
+  .page-title-large {
+    font-size: 58px !important;
+    letter-spacing: -1.2px !important;
+  }
+
+  .hero-subtitle,
+  .page-subtitle {
+    font-size: 20px !important;
+    max-width: 900px !important;
+  }
+
+  .btn {
+    padding: 16px 36px !important;
+    font-size: 17px !important;
+    min-height: 56px;
+    border-radius: 12px;
+  }
+
+  /* TV 10-Foot Remote & Controller High-Contrast Focus Indicators */
+  :focus-visible {
+    outline: 4px solid #6366f1 !important;
+    outline-offset: 6px !important;
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.6) !important;
+  }
+
+  .stat-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px;
+  }
+
+  .pillar-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+
+  .stat-item-box,
+  .pillar-card,
+  .about-card,
+  .contact-form-card,
+  .faq-card-box {
+    padding: 44px !important;
+    border-radius: 20px !important;
+  }
+}
