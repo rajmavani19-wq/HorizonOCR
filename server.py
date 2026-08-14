@@ -28,12 +28,19 @@ from collections import defaultdict, deque
 from datetime import timedelta
 from functools import wraps
 from pathlib import Path
-
+from PIL import Image, UnidentifiedImageError
 try:
     import pymupdf as fitz  # type: ignore[import-not-found]
-except ImportError:
-    import fitz  # PyMuPDF
-from PIL import Image, UnidentifiedImageError
+except Exception:
+    try:
+        import fitz  # PyMuPDF
+    except Exception:
+        fitz = None
+
+try:
+    import pypdfium2 as pdfium
+except Exception:
+    pdfium = None
 from flask import Flask, request, jsonify, send_from_directory, send_file, session, redirect
 from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -100,9 +107,11 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=int(os.environ.get("SESSION_LIFETIME_HOURS", "12"))),
 )
 
-trusted_proxy_hops = int(os.environ.get("TRUSTED_PROXY_HOPS", "0"))
-if trusted_proxy_hops:
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=trusted_proxy_hops, x_proto=trusted_proxy_hops, x_host=trusted_proxy_hops)
+is_render = os.environ.get("RENDER") == "true" or "RENDER_EXTERNAL_URL" in os.environ
+trusted_proxy_hops = int(os.environ.get("TRUSTED_PROXY_HOPS", "1" if is_render else "0"))
+if trusted_proxy_hops or is_render:
+    hops = max(trusted_proxy_hops, 1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops, x_prefix=hops)
 
 CORS(
     app,
@@ -293,16 +302,34 @@ def render_doc_pages_to_base64(filepath, max_pages=10, dpi=96):
             logger.exception("Unable to render image preview with PIL")
             return []
 
-    try:
-        with fitz.open(filepath) as doc:
+    if fitz:
+        try:
+            with fitz.open(filepath) as doc:
+                limit = min(len(doc), max_pages)
+                for i in range(limit):
+                    pix = doc[i].get_pixmap(dpi=dpi, alpha=False)
+                    img_bytes = pix.tobytes("png")
+                    b64 = base64.b64encode(img_bytes).decode("utf-8")
+                    page_images.append(f"data:image/png;base64,{b64}")
+                return page_images
+        except Exception:
+            logger.exception("Unable to render document previews with PyMuPDF")
+
+    if pdfium:
+        try:
+            doc = pdfium.PdfDocument(filepath)
             limit = min(len(doc), max_pages)
+            scale = dpi / 72.0
             for i in range(limit):
-                pix = doc[i].get_pixmap(dpi=dpi, alpha=False)
-                img_bytes = pix.tobytes("png")
-                b64 = base64.b64encode(img_bytes).decode("utf-8")
+                pil_img = doc[i].render(scale=scale).to_pil()
+                buf = io.BytesIO()
+                pil_img.save(buf, format="PNG")
+                b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
                 page_images.append(f"data:image/png;base64,{b64}")
-    except Exception:
-        logger.exception("Unable to render document previews")
+            return page_images
+        except Exception:
+            logger.exception("Unable to render document previews with pypdfium2")
+
     return page_images
 
 
@@ -330,16 +357,25 @@ def _verify_saved_upload(filepath, extension):
     """Reject malformed or decompression-bomb image/PDF uploads before expensive extraction."""
     try:
         if extension == ".pdf":
-            with fitz.open(filepath) as document:
-                if not document.page_count:
+            if fitz:
+                with fitz.open(filepath) as document:
+                    if not document.page_count:
+                        raise ValueError("The PDF has no pages.")
+                    if document.page_count > MAX_DOCUMENT_PAGES:
+                        raise ValueError(f"The document exceeds the {MAX_DOCUMENT_PAGES}-page limit.")
+            elif pdfium:
+                doc = pdfium.PdfDocument(filepath)
+                if not len(doc):
                     raise ValueError("The PDF has no pages.")
-                if document.page_count > MAX_DOCUMENT_PAGES:
+                if len(doc) > MAX_DOCUMENT_PAGES:
                     raise ValueError(f"The document exceeds the {MAX_DOCUMENT_PAGES}-page limit.")
         else:
             Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
             with Image.open(filepath) as image:
                 image.verify()
-    except (fitz.FileDataError, UnidentifiedImageError, Image.DecompressionBombError, OSError, ValueError) as error:
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, ValueError) as error:
+        return str(error)
+    except Exception as error:
         return str(error)
     return None
 
@@ -614,22 +650,9 @@ def _re_extract_table_cells(page, bbox):
 def extract_tables_from_pdf(filepath):
     """
     Extract table structures and their cell contents from a PDF.
-
-    Two-pass strategy:
-      1. Detect table bounding boxes with PyMuPDF's default line-based
-         find_tables() — good at locating table regions.
-      2. Re-extract cell data within each detected bbox using
-         vertical_strategy='text', horizontal_strategy='text' — which
-         accurately splits multi-value cells that the default strategy
-         crams into one column.
-
-    False-positive filter: tables where fewer than _MIN_TABLE_FILL_RATIO
-    cells have content are rejected (these are typically grid diagrams,
-    figures, or legends misdetected as tables).
-
-    Returns a dict: {page_num: [tables_data, ...]}
-    Each table: {type, x, y, w, h (normalised %), rows: [[cell_text,...], ...]}
     """
+    if not fitz:
+        return {}
     doc = fitz.open(filepath)
     tables_per_page = {}
 
@@ -702,10 +725,9 @@ def extract_tables_from_pdf(filepath):
 def extract_images_from_pdf(filepath):
     """
     Extract embedded images from each page of a PDF.
-
-    Returns a dict: {page_num: [image_data, ...]}
-    Each image: {x, y, w, h (normalised %), src (base64 data URL)}
     """
+    if not fitz:
+        return {}
     doc = fitz.open(filepath)
     images_per_page = {}
 
@@ -761,11 +783,9 @@ def extract_images_from_pdf(filepath):
 def extract_text_bboxes_from_pdf(filepath):
     """
     Extract text blocks with their bounding boxes from each page of a PDF.
-
-    Returns a dict: {page_num: [text_blocks, ...]}
-    Each block: {type, x, y, w, h (normalised %), text, confidence}
-    Block types: heading, paragraph, list-item, footer, table
     """
+    if not fitz:
+        return {}
     doc = fitz.open(filepath)
     text_bboxes = {}
 
@@ -1111,6 +1131,30 @@ def extract_layout_and_markdown(filepath, user_id=1):
     For images (PNG, JPG, WEBP), attempts built-in OCR via Tesseract.
     """
     import re
+    if not fitz:
+        if pdfium:
+            try:
+                doc = pdfium.PdfDocument(filepath)
+                page_count = len(doc)
+                pages_markdown = []
+                for page_idx in range(page_count):
+                    page_num = page_idx + 1
+                    pil_img = doc[page_idx].render(scale=2.0).to_pil()
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_f:
+                        tmp_p = tmp_f.name
+                    pil_img.save(tmp_p)
+                    page_md, _, _ = _process_image_file(tmp_p, f"Page_{page_num}.png")
+                    try:
+                        os.remove(tmp_p)
+                    except OSError:
+                        pass
+                    pages_markdown.append(f"## Page {page_num}\n\n" + page_md)
+                full_markdown = "\n\n---\n\n".join(pages_markdown)
+                return full_markdown, page_count
+            except Exception:
+                logger.exception("PDF extraction failed with pypdfium2 fallback")
+        return "# Document\n\n*Unable to extract PDF content on this system.*", 1
+
     doc = fitz.open(filepath)
     doc_hash = hashlib.md5(filepath.encode("utf-8")).hexdigest()[:10]
     doc_img_counter = 0
@@ -1555,6 +1599,14 @@ def _generate_unique_username(base_name):
         return candidate
 
 
+def _get_oauth_redirect_uri():
+    """Get canonical redirect URI, auto-detecting Render external URL if present."""
+    external_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_BASE_URL")
+    if external_url:
+        return external_url.rstrip("/") + "/api/auth/github/callback"
+    return request.host_url.rstrip("/") + "/api/auth/github/callback"
+
+
 @app.route("/api/auth/github/login", methods=["GET"])
 @rate_limit(10, 900)
 def github_oauth_login():
@@ -1566,7 +1618,7 @@ def github_oauth_login():
     session["github_oauth_state"] = state
     params = urllib.parse.urlencode({
         "client_id": GITHUB_CLIENT_ID,
-        "redirect_uri": request.host_url.rstrip("/") + "/api/auth/github/callback",
+        "redirect_uri": _get_oauth_redirect_uri(),
         "scope": "read:user user:email",
         "state": state,
         "allow_signup": "true",
@@ -1601,7 +1653,7 @@ def github_oauth_callback():
             "client_id": GITHUB_CLIENT_ID,
             "client_secret": GITHUB_CLIENT_SECRET,
             "code": code,
-            "redirect_uri": request.host_url.rstrip("/") + "/api/auth/github/callback",
+            "redirect_uri": _get_oauth_redirect_uri(),
         }).encode("utf-8")
         token_req = urllib.request.Request(
             GITHUB_OAUTH_TOKEN_URL,

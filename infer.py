@@ -57,18 +57,37 @@ def get_ngram_processor_str():
 def pdf_to_images(pdf_path: str, dpi: int = 300) -> list[str]:
     try:
         import pymupdf as fitz  # type: ignore[import-not-found]
-    except ImportError:
-        import fitz
+    except Exception:
+        try:
+            import fitz
+        except Exception:
+            fitz = None
 
-    doc = fitz.open(pdf_path)
+    try:
+        import pypdfium2 as pdfium
+    except Exception:
+        pdfium = None
+
     tmp_dir = tempfile.mkdtemp(prefix="pdf_ocr_")
     image_paths = []
-    mat = fitz.Matrix(dpi / 72, dpi / 72)
-    for i, page in enumerate(doc):
-        out_path = os.path.join(tmp_dir, f"page_{i + 1:04d}.png")
-        page.get_pixmap(matrix=mat).save(out_path)
-        image_paths.append(out_path)
-    doc.close()
+
+    if fitz:
+        doc = fitz.open(pdf_path)
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        for i, page in enumerate(doc):
+            out_path = os.path.join(tmp_dir, f"page_{i + 1:04d}.png")
+            page.get_pixmap(matrix=mat).save(out_path)
+            image_paths.append(out_path)
+        doc.close()
+    elif pdfium:
+        doc = pdfium.PdfDocument(pdf_path)
+        scale = dpi / 72.0
+        for i in range(len(doc)):
+            out_path = os.path.join(tmp_dir, f"page_{i + 1:04d}.png")
+            pil_img = doc[i].render(scale=scale).to_pil()
+            pil_img.save(out_path)
+            image_paths.append(out_path)
+
     return image_paths
 
 

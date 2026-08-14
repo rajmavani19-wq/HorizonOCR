@@ -13,8 +13,17 @@ import model_cache  # noqa: F401 — sets up ./models/ local cache
 
 try:
     import pymupdf as fitz  # type: ignore[import-not-found]
-except ImportError:
-    import fitz  # PyMuPDF
+except Exception:
+    try:
+        import fitz  # PyMuPDF
+    except Exception:
+        fitz = None
+
+try:
+    import pypdfium2 as pdfium
+except Exception:
+    pdfium = None
+
 import torch
 from transformers import AutoModel, AutoTokenizer
 
@@ -23,16 +32,26 @@ LOCAL_MODEL_DIR = os.path.join(model_cache.MODELS_DIR, "baidu_unlimited_ocr")
 
 def pdf_to_images(pdf_path: str, dpi: int = 300) -> list[str]:
     print(f"[PDF] Converting {pdf_path} (DPI={dpi}) to images...")
-    doc = fitz.open(pdf_path)
     tmp_dir = tempfile.mkdtemp(prefix="pdf_ocr_")
     paths = []
-    mat = fitz.Matrix(dpi / 72, dpi / 72)
-    for i, page in enumerate(doc):
-        out = os.path.join(tmp_dir, f"page_{i + 1:04d}.png")
-        page.get_pixmap(matrix=mat).save(out)
-        paths.append(out)
-        print(f"  Converted page {i + 1}/{len(doc)}")
-    doc.close()
+    if fitz:
+        doc = fitz.open(pdf_path)
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        for i, page in enumerate(doc):
+            out = os.path.join(tmp_dir, f"page_{i + 1:04d}.png")
+            page.get_pixmap(matrix=mat).save(out)
+            paths.append(out)
+            print(f"  Converted page {i + 1}/{len(doc)}")
+        doc.close()
+    elif pdfium:
+        doc = pdfium.PdfDocument(pdf_path)
+        scale = dpi / 72.0
+        for i in range(len(doc)):
+            out = os.path.join(tmp_dir, f"page_{i + 1:04d}.png")
+            pil_img = doc[i].render(scale=scale).to_pil()
+            pil_img.save(out)
+            paths.append(out)
+            print(f"  Converted page {i + 1}/{len(doc)}")
     return paths
 
 def main():
