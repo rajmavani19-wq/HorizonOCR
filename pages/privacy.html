@@ -6,7 +6,7 @@
       </div>
       <h1 class="page-title-large">Privacy Policy</h1>
       <p class="page-subtitle">
-        Comprehensive legal privacy policy detailing data protection, multi-tenant SQLite database isolation, user ownership rights, and full development methodology.
+        Comprehensive privacy policy detailing data protection, multi-tenant document isolation, cryptographic security, and technical architecture disclosure for HorizonOCR.
       </p>
     </div>
 
@@ -17,7 +17,7 @@
           <i data-lucide="lock" style="width:20px;height:20px;"></i> 1. Multi-Tenant Document Data Isolation & Ownership
         </h2>
         <p class="policy-text">
-          HorizonOCR enforces strict account-scoped document data isolation. Every document uploaded to our processing pipeline—including multi-page PDFs, PNGs, JPGs, WEBP files, extracted Markdown text, and binary image BLOBs—is strictly bound to your authenticated user account ID (<code>user_id</code>).
+          HorizonOCR is engineered with strict account-scoped data isolation. Every document uploaded to our processing pipeline—including multi-page PDFs, high-resolution PNG scans, extracted Markdown text, and binary image BLOBs—is strictly bound to your authenticated user account ID (<code>user_id</code>).
         </p>
         <p class="policy-text">
           You retain 100% intellectual property ownership over all uploaded source documents and generated deliverables. Other registered users cannot access, view, or query your document history, extracted tables, or stored images.
@@ -29,12 +29,12 @@
           <i data-lucide="database" style="width:20px;height:20px;"></i> 2. SQLite Binary BLOB Storage & Image Security
         </h2>
         <p class="policy-text">
-          User profiles, password hashes, processing timing metrics, document metadata, and extracted graphics are stored in a secure SQLite database (<code>database.db</code>):
+          User profiles, password hashes, processing timing metrics, document metadata, and extracted graphics are stored in a secure SQLite database (<code>horizonocr.db</code>):
         </p>
         <ul class="policy-list">
-          <li><strong>Binary BLOB Persistence:</strong> Embedded PDF images and diagrams are converted to web-standard 24-bit PNG format and stored as binary <code>BLOB</code> data inside <code>document_images</code>.</li>
-          <li><strong>Session Scoped Serving:</strong> Image assets are served via <code>GET /api/images/&lt;img_name&gt;</code>, which validates session ownership to block cross-account data leaks.</li>
-          <li><strong>CMYK Color Normalization:</strong> Strips print color profiles and converts complex CMYK/JPX graphics to RGB PNGs using Pillow (<code>PIL.Image</code>) before persistence.</li>
+          <li><strong>Binary BLOB Persistence:</strong> Embedded PDF images and diagrams are converted to web-standard 24-bit PNG format and stored as binary <code>BLOB</code> data inside the <code>document_images</code> table.</li>
+          <li><strong>Session Scoped Serving:</strong> Image assets are served via <code>GET /api/images/&lt;img_name&gt;</code>, which strictly validates session ownership against <code>user_id</code> to block cross-account data leaks.</li>
+          <li><strong>CMYK Color Normalization:</strong> Strips print color profiles and converts complex CMYK/JPX graphics to standard RGB PNGs using Pillow (<code>PIL.Image</code>) before persistence.</li>
         </ul>
       </div>
 
@@ -46,21 +46,22 @@
           User credentials and session state are secured using industry-standard cryptography:
         </p>
         <ul class="policy-list">
-          <li><strong>Cryptographic Password Hashing:</strong> User passwords are hashed using PBKDF2 with SHA-256 before storage in SQLite <code>users</code>.</li>
-          <li><strong>Encrypted HTTP-Only Session Cookies:</strong> Authentication state is managed via encrypted HTTP-only session cookies (<code>session['user_id']</code>).</li>
+          <li><strong>Cryptographic Password Hashing:</strong> User passwords are encrypted using PBKDF2 with SHA-256 (via <code>werkzeug.security</code>) before storage in the database. Plaintext passwords are never stored or logged.</li>
+          <li><strong>Encrypted HTTP-Only Session Cookies:</strong> Authentication state is managed via encrypted, signed HTTP-only session cookies with <code>SameSite</code> enforcement.</li>
+          <li><strong>CSRF Token Validation:</strong> All state-mutating requests require cryptographic Double-Submit CSRF tokens verified via <code>/api/csrf</code>.</li>
           <li><strong>Zero Third-Party Trackers:</strong> We do NOT use third-party tracking cookies, Google Analytics scripts, or cross-site behavioral trackers.</li>
         </ul>
       </div>
 
       <div class="policy-section">
         <h2 class="policy-h2">
-          <i data-lucide="trash-2" style="width:20px;height:20px;"></i> 4. Temporary File Scrubbing & User Data Deletion
+          <i data-lucide="trash-2" style="width:20px;height:20px;"></i> 4. Temporary File Scrubbing & Data Deletion
         </h2>
         <p class="policy-text">
-          Temporary file caches generated during PDF rasterization are immediately scrubbed from server memory upon completion of the OCR pipeline.
+          Temporary file caches generated during PDF rasterization and ONNX OCR inference are created in isolated temporary directories (<code>tempfile.mkdtemp</code>) and are immediately scrubbed and purged upon task completion.
         </p>
         <p class="policy-text">
-          You maintain full control over your document history. You may delete past document records, clear cached outputs, or purge your account data at any time via your Dashboard profile settings.
+          You maintain full control over your document history. You may delete past document records, clear cached outputs, or purge your account data at any time via your Dashboard.
         </p>
       </div>
 
@@ -69,7 +70,7 @@
           <i data-lucide="eye-off" style="width:20px;height:20px;"></i> 5. Anti-Selling & Non-Training Guarantee
         </h2>
         <p class="policy-text">
-          We strictly pledge that your uploaded documents, extracted Markdown text, and mathematical formulas will NEVER be sold, leased, or shared with third-party data brokers or advertising networks. Furthermore, your data is never used to train third-party AI models.
+          We strictly pledge that your uploaded documents, extracted Markdown text, and mathematical formulas will NEVER be sold, leased, or shared with third-party data brokers or advertising networks. Furthermore, your data is never used to train public AI models.
         </p>
       </div>
 
@@ -94,26 +95,26 @@
             <tr>
               <td><strong>Backend REST API</strong></td>
               <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
-              <td>Delivers session authentication, upload endpoints, rate limiting, and OCR pipeline orchestration.</td>
+              <td>Delivers session authentication, upload endpoints, file validation, rate limiting, and OCR pipeline orchestration.</td>
             </tr>
             <tr>
               <td><strong>PDF & Vector Engine</strong></td>
-              <td>PyMuPDF (<code>fitz</code>)</td>
+              <td>PyMuPDF (<code>fitz</code>) / PyPDFium2</td>
               <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
             </tr>
             <tr>
-              <td><strong>OCR Fallback Engine</strong></td>
-              <td>RapidOCR ONNX Runtime & Tesseract</td>
-              <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+              <td><strong>OCR Vision Engine</strong></td>
+              <td>ONNX Runtime, DBNet Detector & PP-OCRv3 Recognizer</td>
+              <td>High-accuracy deep-learning OCR pipeline with Bicubic super-resolution for detecting tiny footnotes, serial numbers, and math equations.</td>
             </tr>
             <tr>
-              <td><strong>Database & Security</strong></td>
-              <td>SQLite 3 (<code>database.db</code>)</td>
+              <td><strong>Database Storage</strong></td>
+              <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
               <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
             </tr>
             <tr>
-              <td><strong>Frontend SPA Framework</strong></td>
-              <td>Vanilla JS Router & Custom Vanilla CSS</td>
+              <td><strong>Frontend SPA Architecture</strong></td>
+              <td>Vanilla JS Router & Custom HSL Design System</td>
               <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
             </tr>
             <tr>

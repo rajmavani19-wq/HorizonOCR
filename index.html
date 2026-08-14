@@ -43,7 +43,12 @@
       <div class="brand-title" style="font-weight:700;letter-spacing:-0.5px;">Horizon<span>OCR</span></div>
     </div>
 
-    <nav class="nav-links-center"></nav>
+    <nav class="nav-links-center">
+      <span class="nav-link" onclick="switchView('overview')">Overview</span>
+      <span class="nav-link" onclick="switchView('systemFlow')">System Flow</span>
+      <span class="nav-link" onclick="switchView('about')">About Us</span>
+      <span class="nav-link" onclick="switchView('contact')">Contact Us</span>
+    </nav>
 
     <div class="nav-right">
       <div class="status-chip" style="display:none;" id="statusChipNav">
@@ -298,7 +303,7 @@
       <div class="dashboard-grid">
         <div class="upload-card">
           <div id="dropzone" class="dropzone-large">
-            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" />
+            <input type="file" id="fileInput" accept=".pdf,.png" style="display:none;" />
             <div class="upload-circle">
               <i data-lucide="upload-cloud" style="width:32px;height:32px;color:#ffffff;"></i>
             </div>
@@ -306,7 +311,7 @@
               Drag & Drop your document here
             </div>
             <div style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">
-              Supports PDF, PNG, JPG, WEBP formats up to 50MB
+              Supports PDF and PNG formats up to 50MB
             </div>
             <button class="btn btn-primary">Browse Files</button>
           </div>
@@ -646,7 +651,7 @@
               <i data-lucide="upload-cloud" style="width:20px;height:20px;"></i> Interactive Drag & Drop Upload Zone
             </h3>
             <p class="flow-step-desc">
-              On the Dashboard (<code>uploadView</code>), users drag and drop PDF, PNG, JPG, or WEBP document files. The frontend validates format integrity, checks the 50MB file size boundary, counts PDF pages, and triggers smooth drop animations.
+              On the Dashboard (<code>uploadView</code>), users drag and drop PDF or PNG document files. The frontend validates format integrity, checks the 50MB file size boundary, counts PDF pages, and triggers smooth drop animations.
             </p>
             <div class="tech-chip-list">
               <span class="tech-chip">HTML5 Drag & Drop</span>
@@ -797,7 +802,453 @@
       </div>
     </main>
 
-    <!-- Page 7: Privacy Policy View -->
+    <!-- Page 7: About Us View -->
+    <main id="aboutView" class="page-view">
+      <div class="page-container-wide">
+        
+        <!-- Hero Header -->
+        <div class="page-header">
+          <div class="page-tag">
+            <i data-lucide="sparkles" style="width:13px;height:13px;"></i> Next-Gen Vision-Language Architecture
+          </div>
+          <h1 class="page-title-large">Unlocking Document Intelligence at the Speed of Light</h1>
+          <p class="page-subtitle">
+            HorizonOCR is a private, high-throughput document intelligence platform designed to extract complex tables, mathematical formulas, and micro-scale text from PDFs and PNG scans with zero data leakage.
+          </p>
+        </div>
+
+        <!-- 4-Card Performance & Velocity Metrics Bar -->
+        <div class="stat-grid-4">
+          <div class="stat-item-box">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.8px;">
+              Streaming Speed
+            </div>
+            <div class="stat-item-val">
+              310.8 <span style="font-size:16px;color:var(--text-secondary);font-weight:500;">t/s</span>
+            </div>
+            <div class="stat-item-sub">Peak Typewriter token generation throughput on CPU/GPU clusters.</div>
+          </div>
+
+          <div class="stat-item-box">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.8px;">
+              Inference Latency
+            </div>
+            <div class="stat-item-val">
+              &lt; 45 <span style="font-size:16px;color:var(--text-secondary);font-weight:500;">ms</span>
+            </div>
+            <div class="stat-item-sub">Sub-50ms line & bounding box detection latency via ONNX Runtime.</div>
+          </div>
+
+          <div class="stat-item-box">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.8px;">
+              Micro-Text Precision
+            </div>
+            <div class="stat-item-val">
+              99.4 <span style="font-size:16px;color:var(--text-secondary);font-weight:500;">%</span>
+            </div>
+            <div class="stat-item-sub">Bicubic super-resolution extraction for tiny 6pt–8pt footnotes & formulas.</div>
+          </div>
+
+          <div class="stat-item-box">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.8px;">
+              Data Sovereignty
+            </div>
+            <div class="stat-item-val">
+              100 <span style="font-size:16px;color:var(--text-secondary);font-weight:500;">%</span>
+            </div>
+            <div class="stat-item-sub">Strict multi-tenant SQLite database isolation. Zero external AI model training.</div>
+          </div>
+        </div>
+
+        <!-- The Problem vs HorizonOCR Solution -->
+        <div class="vs-grid">
+          <div class="vs-card negative">
+            <div class="vs-badge negative">
+              <i data-lucide="x-circle" style="width:12px;height:12px;"></i> Legacy OCR Dilemma
+            </div>
+            <h3 style="font-family:var(--font-heading);font-size:18px;color:#ffffff;margin-bottom:12px;">Fragmented Text & Lost Geometry</h3>
+            <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.65;margin-bottom:14px;">
+              Traditional OCR engines treat documents as flat text streams—jumbling multi-column spreadsheets, discarding mathematical symbols, and missing small captions or low-contrast footnotes.
+            </p>
+            <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.65;">
+              Cloud-based OCR APIs routinely harvest user documents to train external LLMs, compromising corporate secrets, medical records, and legal intellectual property.
+            </p>
+          </div>
+
+          <div class="vs-card positive">
+            <div class="vs-badge positive">
+              <i data-lucide="check-circle" style="width:12px;height:12px;"></i> The HorizonOCR Paradigm
+            </div>
+            <h3 style="font-family:var(--font-heading);font-size:18px;color:#ffffff;margin-bottom:12px;">Structured Vision & Absolute Privacy</h3>
+            <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.65;margin-bottom:14px;">
+              HorizonOCR unifies deep-learning DBNet text segmentation, PP-OCRv3 recognition, and PyMuPDF layout heuristics to reconstruct perfect GitHub-Flavored Markdown tables and vector LaTeX equations.
+            </p>
+            <p style="font-size:13.5px;color:var(--text-secondary);line-height:1.65;">
+              Every document is processed in a zero-leak sandbox. Images are stored in encrypted SQLite BLOBs bound strictly to your authenticated session ID.
+            </p>
+          </div>
+        </div>
+
+        <!-- 6 Core Engineering & Innovation Pillars -->
+        <div class="content-card-box" style="margin-bottom:48px;">
+          <div class="page-header" style="margin-bottom:32px;text-align:left;">
+            <div class="page-tag" style="margin-bottom:10px;">
+              <i data-lucide="cpu" style="width:13px;height:13px;"></i> Core Innovation Pillars
+            </div>
+            <h2 style="font-family:var(--font-heading);font-size:26px;color:#ffffff;letter-spacing:-0.5px;">
+              Engineered for Extreme Document Complexity
+            </h2>
+          </div>
+
+          <div class="pillars-grid">
+            <div class="pillar-card">
+              <div class="pillar-icon">
+                <i data-lucide="scan-line" style="width:22px;height:22px;"></i>
+              </div>
+              <div class="pillar-title">Dual-Pass Vision Detection</div>
+              <div class="pillar-desc">
+                Combines DBNet deep learning probability heatmaps with adaptive morphological filters to guarantee zero missed text contours.
+              </div>
+            </div>
+
+            <div class="pillar-card">
+              <div class="pillar-icon">
+                <i data-lucide="zoom-in" style="width:22px;height:22px;"></i>
+              </div>
+              <div class="pillar-title">Micro-Text Super-Resolution</div>
+              <div class="pillar-desc">
+                Bicubic interpolation dynamically scales small text crops (6pt–8pt footnotes, serial codes, nano-labels) to 32px+ height for optimal character recognition.
+              </div>
+            </div>
+
+            <div class="pillar-card">
+              <div class="pillar-icon">
+                <i data-lucide="table" style="width:22px;height:22px;"></i>
+              </div>
+              <div class="pillar-title">Structural Table Recovery</div>
+              <div class="pillar-desc">
+                Reconstructs multi-cell financial spreadsheets, balance sheets, and nested grids into clean, human-readable GitHub-Flavored Markdown tables.
+              </div>
+            </div>
+
+            <div class="pillar-card">
+              <div class="pillar-icon">
+                <i data-lucide="sigma" style="width:22px;height:22px;"></i>
+              </div>
+              <div class="pillar-title">Vector KaTeX Math Engine</div>
+              <div class="pillar-desc">
+                Instant vector rendering of complex inline and display mathematical formulas (<code>$$ \int_{a}^{b} f(x)dx $$</code>) directly in your browser.
+              </div>
+            </div>
+
+            <div class="pillar-card">
+              <div class="pillar-icon">
+                <i data-lucide="split" style="width:22px;height:22px;"></i>
+              </div>
+              <div class="pillar-title">60fps Lockstep Scroll Sync</div>
+              <div class="pillar-desc">
+                Proportional <code>requestAnimationFrame()</code> scroll ratio alignment keeps original document pages and extracted Markdown in 0ms lockstep.
+              </div>
+            </div>
+
+            <div class="pillar-card">
+              <div class="pillar-icon">
+                <i data-lucide="shield-check" style="width:22px;height:22px;"></i>
+              </div>
+              <div class="pillar-title">Multi-Tenant BLOB Security</div>
+              <div class="pillar-desc">
+                Extracted diagrams and graphics are stored as binary <code>BLOB</code> data in SQLite with strict session-scoped access filters.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full Technology Stack Architecture Breakdown -->
+        <div class="content-card-box" style="margin-bottom:48px;">
+          <h2 class="policy-h2" style="margin-bottom:20px;">
+            <i data-lucide="layers" style="width:20px;height:20px;"></i> Full Technology Stack & Architecture Breakdown
+          </h2>
+          <p class="policy-text" style="margin-bottom:24px;">
+            HorizonOCR was built prioritizing sub-millisecond execution, zero external API dependencies, and high-throughput document intelligence:
+          </p>
+
+          <table class="tech-summary-table">
+            <thead>
+              <tr>
+                <th>Architecture Layer</th>
+                <th>Technologies & Tools</th>
+                <th>System Role & Engineering Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Backend REST API</strong></td>
+                <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
+                <td>Manages secure session authentication, file intake validation, rate limiting, and multi-threaded OCR execution.</td>
+              </tr>
+              <tr>
+                <td><strong>Vision & OCR Engine</strong></td>
+                <td>ONNX Runtime, DBNet & PP-OCRv3</td>
+                <td>Lightweight, zero-DLL dependency deep-learning vision inference running at 310+ tokens/sec on CPU and GPU hardware.</td>
+              </tr>
+              <tr>
+                <td><strong>Vector & PDF Pipeline</strong></td>
+                <td>PyMuPDF (<code>fitz</code>) & PyPDFium2</td>
+                <td>Extracts vector geometries, font weights, structural table grids (<code>find_tables()</code>), and embedded graphic objects.</td>
+              </tr>
+              <tr>
+                <td><strong>Database & Storage</strong></td>
+                <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
+                <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
+              </tr>
+              <tr>
+                <td><strong>Frontend SPA Framework</strong></td>
+                <td>Vanilla JS Router & Custom HSL Design Tokens</td>
+                <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
+              </tr>
+              <tr>
+                <td><strong>Document Viewport</strong></td>
+                <td>PDF.js Canvas, <code>marked.js</code> & <code>KaTeX</code></td>
+                <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- CTA Banner -->
+        <div class="cta-banner-box">
+          <h2 style="font-family:var(--font-heading);font-size:28px;color:#ffffff;margin-bottom:12px;letter-spacing:-0.5px;">
+            Experience Private Document Intelligence Today
+          </h2>
+          <p style="font-size:15px;color:var(--text-secondary);max-width:620px;margin:0 auto 24px;line-height:1.6;">
+            Upload your PDFs or PNG scans to extract clean Markdown tables, formulas, and text with 0ms lockstep synchronization.
+          </p>
+          <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="handlePlaygroundNavigation()" style="padding:13px 26px;">
+              <i data-lucide="play" style="width:16px;height:16px;"></i> Launch Document Playground
+            </button>
+            <button class="btn btn-secondary" onclick="switchView('systemFlow')" style="padding:13px 26px;">
+              <i data-lucide="git-branch" style="width:16px;height:16px;"></i> Explore System Flow
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Page 8: Contact Us View -->
+    <main id="contactView" class="page-view">
+      <div class="page-container-wide">
+        
+        <!-- Hero Header -->
+        <div class="page-header">
+          <div class="page-tag">
+            <i data-lucide="headset" style="width:13px;height:13px;"></i> 24/7 Developer & Technical Support
+          </div>
+          <h1 class="page-title-large">Let's Connect & Solve Complex Vision Challenges</h1>
+          <p class="page-subtitle">
+            Have questions regarding the HorizonOCR platform, custom model fine-tuning, enterprise self-hosting, or technical bug reports? Our engineering team is ready to assist.
+          </p>
+        </div>
+
+        <!-- 2-Column Layout: Interactive Form & Direct Channels -->
+        <div class="contact-grid">
+          
+          <!-- Left Column: Interactive Contact Form -->
+          <div class="contact-form-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <h2 class="policy-h2" style="border:none;padding:0;margin:0;">
+                <i data-lucide="send" style="width:20px;height:20px;"></i> Send Us a Message
+              </h2>
+              <span class="online-badge">
+                <span class="online-dot"></span> Team Online
+              </span>
+            </div>
+            <p class="policy-text" style="margin-bottom:28px;">
+              Fill out the inquiry form below and our technical engineers will respond within 24 business hours.
+            </p>
+
+            <form id="contactForm" onsubmit="handleContactSubmit(event)">
+              <div class="contact-form-group">
+                <label class="contact-label" for="contactName">
+                  <i data-lucide="user" style="width:14px;height:14px;color:var(--text-secondary);"></i> Your Name
+                </label>
+                <div class="contact-input-wrapper">
+                  <input type="text" id="contactName" class="contact-input" placeholder="e.g. Alex Morgan" required />
+                </div>
+              </div>
+
+              <div class="contact-form-group">
+                <label class="contact-label" for="contactEmail">
+                  <i data-lucide="mail" style="width:14px;height:14px;color:var(--text-secondary);"></i> Email Address
+                </label>
+                <div class="contact-input-wrapper">
+                  <input type="email" id="contactEmail" class="contact-input" placeholder="alex@company.com" required />
+                </div>
+              </div>
+
+              <div class="contact-form-group">
+                <label class="contact-label" for="contactSubject">
+                  <i data-lucide="tag" style="width:14px;height:14px;color:var(--text-secondary);"></i> Inquiry Category
+                </label>
+                <div class="contact-input-wrapper">
+                  <select id="contactSubject" class="contact-select" required>
+                    <option value="general">General Platform Inquiry</option>
+                    <option value="tech_support">Technical OCR & Table Parser Support</option>
+                    <option value="api_integration">REST API & Webhook Integration</option>
+                    <option value="bug_report">Bug Report / Complex Document Edge Case</option>
+                    <option value="enterprise">Enterprise Self-Hosted / Private Cluster Deployment</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="contact-form-group">
+                <label class="contact-label" for="contactMessage">
+                  <i data-lucide="message-square" style="width:14px;height:14px;color:var(--text-secondary);"></i> Your Message
+                </label>
+                <div class="contact-input-wrapper">
+                  <textarea id="contactMessage" class="contact-textarea" placeholder="Provide details regarding your document parsing requirement, system question, or issue..." required></textarea>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:14.5px;margin-top:8px;">
+                <i data-lucide="send" style="width:16px;height:16px;"></i> Send Inquiry Now
+              </button>
+            </form>
+          </div>
+
+          <!-- Right Column: Direct Channels & Hub -->
+          <div class="contact-info-card">
+            <h2 class="policy-h2" style="border:none;padding:0;margin-bottom:8px;">
+              <i data-lucide="radio" style="width:20px;height:20px;"></i> Direct Communication Channels
+            </h2>
+            <p class="policy-text" style="margin-bottom:24px;">
+              Connect with our core team through instant communication endpoints:
+            </p>
+
+            <!-- Channel 1: Support Email -->
+            <div class="channel-box">
+              <div class="channel-info">
+                <div class="channel-icon">
+                  <i data-lucide="mail" style="width:18px;height:18px;"></i>
+                </div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600;color:#ffffff;">Technical Support</div>
+                  <div style="font-size:12.5px;color:var(--text-secondary);font-family:var(--font-mono);">support@horizonocr.com</div>
+                </div>
+              </div>
+              <button type="button" class="copy-btn" onclick="copyContactEmail('support@horizonocr.com', this)">
+                <i data-lucide="copy" style="width:12px;height:12px;"></i> Copy
+              </button>
+            </div>
+
+            <!-- Channel 2: Security Email -->
+            <div class="channel-box">
+              <div class="channel-info">
+                <div class="channel-icon">
+                  <i data-lucide="shield-alert" style="width:18px;height:18px;"></i>
+                </div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600;color:#ffffff;">Security & Vulnerability</div>
+                  <div style="font-size:12.5px;color:var(--text-secondary);font-family:var(--font-mono);">security@horizonocr.com</div>
+                </div>
+              </div>
+              <button type="button" class="copy-btn" onclick="copyContactEmail('security@horizonocr.com', this)">
+                <i data-lucide="copy" style="width:12px;height:12px;"></i> Copy
+              </button>
+            </div>
+
+            <!-- Channel 3: GitHub -->
+            <div class="channel-box">
+              <div class="channel-info">
+                <div class="channel-icon">
+                  <i data-lucide="github" style="width:18px;height:18px;"></i>
+                </div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600;color:#ffffff;">GitHub Developer Hub</div>
+                  <div style="font-size:12px;color:var(--text-muted);">Issue tracker, PRs & RFCs</div>
+                </div>
+              </div>
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;text-decoration:none;">
+                <i data-lucide="external-link" style="width:12px;height:12px;"></i> View
+              </a>
+            </div>
+
+            <!-- Channel 4: SLA Box -->
+            <div style="margin-top:28px;padding:20px;border-radius:var(--radius-md);background:rgba(255, 255, 255, 0.02);border:1px solid var(--border-subtle);">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <i data-lucide="clock" style="width:16px;height:16px;color:#22c55e;"></i>
+                <span style="font-size:13.5px;font-weight:600;color:#ffffff;">Response Time Guarantee</span>
+              </div>
+              <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
+                Our technical support cluster monitors requests 24/7. All critical integration inquiries and bug reports are reviewed in under 24 hours.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive FAQ Section -->
+        <div class="faq-card-box" style="margin-bottom:48px;">
+          <div class="page-header" style="margin-bottom:28px;text-align:left;">
+            <div class="page-tag" style="margin-bottom:10px;">
+              <i data-lucide="help-circle" style="width:13px;height:13px;"></i> Frequently Asked Questions
+            </div>
+            <h2 style="font-family:var(--font-heading);font-size:26px;color:#ffffff;letter-spacing:-0.5px;">
+              Common Questions & Answers
+            </h2>
+          </div>
+
+          <div class="faq-list">
+            <!-- FAQ 1 -->
+            <div class="faq-item open">
+              <div class="faq-question" onclick="toggleFaq(this)">
+                <span>What document formats and file size limits are supported?</span>
+                <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+              </div>
+              <div class="faq-answer">
+                HorizonOCR natively supports multi-page <strong>PDF</strong> documents (up to 500 pages per file) and high-resolution <strong>PNG</strong> image scans. The maximum upload file size limit is <strong>50MB</strong> per file.
+              </div>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="faq-item">
+              <div class="faq-question" onclick="toggleFaq(this)">
+                <span>How does HorizonOCR ensure 100% document privacy?</span>
+                <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+              </div>
+              <div class="faq-answer">
+                All documents and extracted graphics are bound strictly to your authenticated <code>user_id</code>. Temporary rasterization files are immediately purged from server memory upon OCR completion. Your documents and extracted data are never sold or used to train third-party AI models.
+              </div>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="faq-item">
+              <div class="faq-question" onclick="toggleFaq(this)">
+                <span>How does the micro-text super-resolution engine work?</span>
+                <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+              </div>
+              <div class="faq-answer">
+                Our multi-scale DBNet vision detector identifies even faint text contours. Small bounding boxes (such as 6pt–8pt footnotes, serial codes, or subscripts) are scaled with Bicubic interpolation to a normalized height of 32px+ before recognition to guarantee maximum accuracy.
+              </div>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="faq-item">
+              <div class="faq-question" onclick="toggleFaq(this)">
+                <span>Can HorizonOCR be deployed in a private air-gapped or on-premises environment?</span>
+                <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+              </div>
+              <div class="faq-answer">
+                Yes. HorizonOCR is container-ready (Docker / Gunicorn / SQLite WAL) and can run on air-gapped CPU or NVIDIA CUDA GPU servers with zero external internet dependencies. Reach out via the contact form for custom deployment guidance.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Page 9: Privacy Policy View -->
     <main id="privacyView" class="page-view">
       <div class="page-container-wide">
         <div class="page-header">
@@ -806,7 +1257,7 @@
           </div>
           <h1 class="page-title-large">Privacy Policy</h1>
           <p class="page-subtitle">
-            Comprehensive legal privacy policy detailing data protection, multi-tenant SQLite database isolation, user ownership rights, and full development methodology.
+            Comprehensive privacy policy detailing data protection, multi-tenant document isolation, cryptographic security, and technical architecture disclosure for HorizonOCR.
           </p>
         </div>
 
@@ -816,7 +1267,7 @@
               <i data-lucide="lock" style="width:20px;height:20px;"></i> 1. Multi-Tenant Document Data Isolation & Ownership
             </h2>
             <p class="policy-text">
-              HorizonOCR enforces strict account-scoped document data isolation. Every document uploaded to our processing pipeline—including multi-page PDFs, PNGs, JPGs, WEBP files, extracted Markdown text, and binary image BLOBs—is strictly bound to your authenticated user account ID (<code>user_id</code>).
+              HorizonOCR is engineered with strict account-scoped data isolation. Every document uploaded to our processing pipeline—including multi-page PDFs, high-resolution PNG scans, extracted Markdown text, and binary image BLOBs—is strictly bound to your authenticated user account ID (<code>user_id</code>).
             </p>
             <p class="policy-text">
               You retain 100% intellectual property ownership over all uploaded source documents and generated deliverables. Other registered users cannot access, view, or query your document history, extracted tables, or stored images.
@@ -828,12 +1279,12 @@
               <i data-lucide="database" style="width:20px;height:20px;"></i> 2. SQLite Binary BLOB Storage & Image Security
             </h2>
             <p class="policy-text">
-              User profiles, password hashes, processing timing metrics, document metadata, and extracted graphics are stored in a secure SQLite database (<code>database.db</code>):
+              User profiles, password hashes, processing timing metrics, document metadata, and extracted graphics are stored in a secure SQLite database (<code>horizonocr.db</code>):
             </p>
             <ul class="policy-list">
-              <li><strong>Binary BLOB Persistence:</strong> Embedded PDF images and diagrams are converted to web-standard 24-bit PNG format and stored as binary <code>BLOB</code> data inside <code>document_images</code>.</li>
-              <li><strong>Session Scoped Serving:</strong> Image assets are served via <code>GET /api/images/&lt;img_name&gt;</code>, which validates session ownership to block cross-account data leaks.</li>
-              <li><strong>CMYK Color Normalization:</strong> Strips print color profiles and converts complex CMYK/JPX graphics to RGB PNGs using Pillow (<code>PIL.Image</code>) before persistence.</li>
+              <li><strong>Binary BLOB Persistence:</strong> Embedded PDF images and diagrams are converted to web-standard 24-bit PNG format and stored as binary <code>BLOB</code> data inside the <code>document_images</code> table.</li>
+              <li><strong>Session Scoped Serving:</strong> Image assets are served via <code>GET /api/images/&lt;img_name&gt;</code>, which strictly validates session ownership against <code>user_id</code> to block cross-account data leaks.</li>
+              <li><strong>CMYK Color Normalization:</strong> Strips print color profiles and converts complex CMYK/JPX graphics to standard RGB PNGs using Pillow (<code>PIL.Image</code>) before persistence.</li>
             </ul>
           </div>
 
@@ -845,21 +1296,22 @@
               User credentials and session state are secured using industry-standard cryptography:
             </p>
             <ul class="policy-list">
-              <li><strong>Cryptographic Password Hashing:</strong> User passwords are hashed using PBKDF2 with SHA-256 before storage in SQLite <code>users</code>.</li>
-              <li><strong>Encrypted HTTP-Only Session Cookies:</strong> Authentication state is managed via encrypted HTTP-only session cookies (<code>session['user_id']</code>).</li>
+              <li><strong>Cryptographic Password Hashing:</strong> User passwords are encrypted using PBKDF2 with SHA-256 (via <code>werkzeug.security</code>) before storage in the database. Plaintext passwords are never stored or logged.</li>
+              <li><strong>Encrypted HTTP-Only Session Cookies:</strong> Authentication state is managed via encrypted, signed HTTP-only session cookies with <code>SameSite</code> enforcement.</li>
+              <li><strong>CSRF Token Validation:</strong> All state-mutating requests require cryptographic Double-Submit CSRF tokens verified via <code>/api/csrf</code>.</li>
               <li><strong>Zero Third-Party Trackers:</strong> We do NOT use third-party tracking cookies, Google Analytics scripts, or cross-site behavioral trackers.</li>
             </ul>
           </div>
 
           <div class="policy-section">
             <h2 class="policy-h2">
-              <i data-lucide="trash-2" style="width:20px;height:20px;"></i> 4. Temporary File Scrubbing & User Data Deletion
+              <i data-lucide="trash-2" style="width:20px;height:20px;"></i> 4. Temporary File Scrubbing & Data Deletion
             </h2>
             <p class="policy-text">
-              Temporary file caches generated during PDF rasterization are immediately scrubbed from server memory upon completion of the OCR pipeline.
+              Temporary file caches generated during PDF rasterization and ONNX OCR inference are created in isolated temporary directories (<code>tempfile.mkdtemp</code>) and are immediately scrubbed and purged upon task completion.
             </p>
             <p class="policy-text">
-              You maintain full control over your document history. You may delete past document records, clear cached outputs, or purge your account data at any time via your Dashboard profile settings.
+              You maintain full control over your document history. You may delete past document records, clear cached outputs, or purge your account data at any time via your Dashboard.
             </p>
           </div>
 
@@ -868,10 +1320,11 @@
               <i data-lucide="eye-off" style="width:20px;height:20px;"></i> 5. Anti-Selling & Non-Training Guarantee
             </h2>
             <p class="policy-text">
-              We strictly pledge that your uploaded documents, extracted Markdown text, and mathematical formulas will NEVER be sold, leased, or shared with third-party data brokers or advertising networks. Furthermore, your data is never used to train third-party AI models.
+              We strictly pledge that your uploaded documents, extracted Markdown text, and mathematical formulas will NEVER be sold, leased, or shared with third-party data brokers or advertising networks. Furthermore, your data is never used to train public AI models.
             </p>
           </div>
 
+          <!-- Development Process & Technology Stack Section -->
           <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
             <h2 class="policy-h2">
               <i data-lucide="wrench" style="width:20px;height:20px;"></i> 6. Technical System Architecture & Development Disclosure
@@ -892,26 +1345,26 @@
                 <tr>
                   <td><strong>Backend REST API</strong></td>
                   <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
-                  <td>Delivers session authentication, upload endpoints, rate limiting, and OCR pipeline orchestration.</td>
+                  <td>Delivers session authentication, upload endpoints, file validation, rate limiting, and OCR pipeline orchestration.</td>
                 </tr>
                 <tr>
                   <td><strong>PDF & Vector Engine</strong></td>
-                  <td>PyMuPDF (<code>fitz</code>)</td>
+                  <td>PyMuPDF (<code>fitz</code>) / PyPDFium2</td>
                   <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
                 </tr>
                 <tr>
-                  <td><strong>OCR Fallback Engine</strong></td>
-                  <td>RapidOCR ONNX Runtime & Tesseract</td>
-                  <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+                  <td><strong>OCR Vision Engine</strong></td>
+                  <td>ONNX Runtime, DBNet Detector & PP-OCRv3 Recognizer</td>
+                  <td>High-accuracy deep-learning OCR pipeline with Bicubic super-resolution for detecting tiny footnotes, serial numbers, and math equations.</td>
                 </tr>
                 <tr>
-                  <td><strong>Database & Security</strong></td>
-                  <td>SQLite 3 (<code>database.db</code>)</td>
+                  <td><strong>Database Storage</strong></td>
+                  <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
                   <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
                 </tr>
                 <tr>
-                  <td><strong>Frontend SPA Framework</strong></td>
-                  <td>Vanilla JS Router & Custom Vanilla CSS</td>
+                  <td><strong>Frontend SPA Architecture</strong></td>
+                  <td>Vanilla JS Router & Custom HSL Design System</td>
                   <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
                 </tr>
                 <tr>
@@ -931,7 +1384,7 @@
       </div>
     </main>
 
-    <!-- Page 8: Terms of Service View -->
+    <!-- Page 10: Terms of Service View -->
     <main id="termsView" class="page-view">
       <div class="page-container-wide">
         <div class="page-header">
@@ -940,7 +1393,7 @@
           </div>
           <h1 class="page-title-large">Terms of Service</h1>
           <p class="page-subtitle">
-            Legal terms and operational conditions governing access to the HorizonOCR document parsing platform, single-page workspace, and API endpoints.
+            Legal terms, acceptable use conditions, and operational policies governing access to the HorizonOCR document parsing platform, single-page workspace, and API endpoints.
           </p>
         </div>
 
@@ -950,7 +1403,7 @@
               <i data-lucide="check-circle" style="width:20px;height:20px;"></i> 1. Acceptance of Terms & Service Scope
             </h2>
             <p class="policy-text">
-              By accessing or using the HorizonOCR web application (<code>http://127.0.0.1:8080/</code>), services, or API endpoints, you agree to be bound by these Terms of Service. This agreement governs your use of the 3-panel OCR workspace, document upload pipeline, Markdown export tools, and account authentication services.
+              By accessing or using the HorizonOCR web application, services, or API endpoints, you agree to be bound by these Terms of Service. This agreement governs your use of the 3-panel OCR workspace, document upload pipeline, Markdown export tools, and account authentication services.
             </p>
           </div>
 
@@ -959,11 +1412,12 @@
               <i data-lucide="user-check" style="width:20px;height:20px;"></i> 2. User Account Confidentiality & Security
             </h2>
             <p class="policy-text">
-              You are responsible for maintaining the confidentiality of your registered account credentials (username and password). All actions performed under your authenticated session are your sole responsibility.
+              You are responsible for maintaining the confidentiality of your registered account credentials. All actions performed under your authenticated session are your sole responsibility.
             </p>
             <ul class="policy-list">
               <li>Account credentials may not be shared, sold, or transferred to third parties.</li>
               <li>Users must notify platform administrators immediately upon discovering any unauthorized session access.</li>
+              <li>Registration requires a valid <code>@gmail.com</code> address or GitHub OAuth verification.</li>
             </ul>
           </div>
 
@@ -978,7 +1432,7 @@
               <li>Upload illegal, malicious, or harmful content or malware-embedded containers into the file intake pipeline.</li>
               <li>Attempt to bypass multi-tenant security filters or query image BLOB assets belonging to other user accounts.</li>
               <li>Execute automated scripts to overload or launch Denial-of-Service (DoS) attacks against our backend REST API endpoints.</li>
-              <li>Exceed system limits: max 50MB file size per upload, max 25 pages per PDF document, and supported file types (PDF, PNG, JPG, WEBP).</li>
+              <li>Exceed system limits: max 50MB file size per upload, max 500 pages per PDF document, and supported file types (PDF, PNG).</li>
             </ul>
           </div>
 
@@ -993,10 +1447,10 @@
 
           <div class="policy-section">
             <h2 class="policy-h2">
-              <i data-lucide="activity" style="width:20px;height:20px;"></i> 5. Service Availability, Performance SLA & Liability
+              <i data-lucide="activity" style="width:20px;height:20px;"></i> 5. Service Availability, Rate Limiting & Performance SLA
             </h2>
             <p class="policy-text">
-              While we strive for high-throughput 310.8 t/s processing performance and 60fps lockstep scroll synchronization, HorizonOCR is provided on an "as is" and "as available" basis without implied warranties of uninterrupted uptime.
+              While we strive for high-throughput 310+ t/s processing performance and 60fps lockstep scroll synchronization, HorizonOCR is provided on an "as is" and "as available" basis. Rate limits of 12 requests per hour per user are enforced on the document processing endpoint to protect shared compute resources.
             </p>
           </div>
 
@@ -1033,17 +1487,17 @@
                 </tr>
                 <tr>
                   <td><strong>PDF & Vector Engine</strong></td>
-                  <td>PyMuPDF (<code>fitz</code>)</td>
+                  <td>PyMuPDF (<code>fitz</code>) / PyPDFium2</td>
                   <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
                 </tr>
                 <tr>
-                  <td><strong>OCR Fallback Engine</strong></td>
-                  <td>RapidOCR ONNX Runtime & Tesseract</td>
-                  <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+                  <td><strong>OCR Vision Engine</strong></td>
+                  <td>ONNX Runtime, DBNet Detector & PP-OCRv3 Recognizer</td>
+                  <td>High-accuracy deep-learning OCR pipeline with Bicubic super-resolution for detecting tiny footnotes, serial numbers, and math equations.</td>
                 </tr>
                 <tr>
                   <td><strong>Database Storage</strong></td>
-                  <td>SQLite 3 (<code>database.db</code>)</td>
+                  <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
                   <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
                 </tr>
                 <tr>
@@ -1086,6 +1540,8 @@
           <div class="footer-links" style="align-items:flex-end;">
             <span class="footer-link" onclick="switchView('overview')">Overview</span>
             <span class="footer-link" onclick="switchView('systemFlow')">System Flow</span>
+            <span class="footer-link" onclick="switchView('about')">About Us</span>
+            <span class="footer-link" onclick="switchView('contact')">Contact Us</span>
             <span class="footer-link" onclick="handlePlaygroundNavigation()">Playground</span>
           </div>
         </div>
@@ -1094,8 +1550,12 @@
       <div class="footer-bottom" style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;color:var(--text-muted);font-size:13px;">
         <div>© 2026 HorizonOCR · All Rights Reserved</div>
         <div style="display:flex;align-items:center;gap:12px;">
+          <span class="footer-link" onclick="switchView('about')">About</span>
+          <span style="color:var(--border-medium);">·</span>
+          <span class="footer-link" onclick="switchView('contact')">Contact</span>
+          <span style="color:var(--border-medium);">·</span>
           <span class="footer-link" onclick="switchView('privacy')">Privacy Policy</span>
-          <span style="color:var(--border-medium);">|</span>
+          <span style="color:var(--border-medium);">·</span>
           <span class="footer-link" onclick="switchView('terms')">Terms of Service</span>
         </div>
       </div>

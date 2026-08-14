@@ -1,0 +1,210 @@
+<main id="contactView" class="page-view">
+  <div class="page-container-wide">
+    
+    <!-- Hero Header -->
+    <div class="page-header">
+      <div class="page-tag">
+        <i data-lucide="headset" style="width:13px;height:13px;"></i> 24/7 Developer & Technical Support
+      </div>
+      <h1 class="page-title-large">Let's Connect & Solve Complex Vision Challenges</h1>
+      <p class="page-subtitle">
+        Have questions regarding the HorizonOCR platform, custom model fine-tuning, enterprise self-hosting, or technical bug reports? Our engineering team is ready to assist.
+      </p>
+    </div>
+
+    <!-- 2-Column Layout: Interactive Form & Direct Channels -->
+    <div class="contact-grid">
+      
+      <!-- Left Column: Interactive Contact Form -->
+      <div class="contact-form-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <h2 class="policy-h2" style="border:none;padding:0;margin:0;">
+            <i data-lucide="send" style="width:20px;height:20px;"></i> Send Us a Message
+          </h2>
+          <span class="online-badge">
+            <span class="online-dot"></span> Team Online
+          </span>
+        </div>
+        <p class="policy-text" style="margin-bottom:28px;">
+          Fill out the inquiry form below and our technical engineers will respond within 24 business hours.
+        </p>
+
+        <form id="contactForm" onsubmit="handleContactSubmit(event)">
+          <div class="contact-form-group">
+            <label class="contact-label" for="contactName">
+              <i data-lucide="user" style="width:14px;height:14px;color:var(--text-secondary);"></i> Your Name
+            </label>
+            <div class="contact-input-wrapper">
+              <input type="text" id="contactName" class="contact-input" placeholder="e.g. Alex Morgan" required />
+            </div>
+          </div>
+
+          <div class="contact-form-group">
+            <label class="contact-label" for="contactEmail">
+              <i data-lucide="mail" style="width:14px;height:14px;color:var(--text-secondary);"></i> Email Address
+            </label>
+            <div class="contact-input-wrapper">
+              <input type="email" id="contactEmail" class="contact-input" placeholder="alex@company.com" required />
+            </div>
+          </div>
+
+          <div class="contact-form-group">
+            <label class="contact-label" for="contactSubject">
+              <i data-lucide="tag" style="width:14px;height:14px;color:var(--text-secondary);"></i> Inquiry Category
+            </label>
+            <div class="contact-input-wrapper">
+              <select id="contactSubject" class="contact-select" required>
+                <option value="general">General Platform Inquiry</option>
+                <option value="tech_support">Technical OCR & Table Parser Support</option>
+                <option value="api_integration">REST API & Webhook Integration</option>
+                <option value="bug_report">Bug Report / Complex Document Edge Case</option>
+                <option value="enterprise">Enterprise Self-Hosted / Private Cluster Deployment</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="contact-form-group">
+            <label class="contact-label" for="contactMessage">
+              <i data-lucide="message-square" style="width:14px;height:14px;color:var(--text-secondary);"></i> Your Message
+            </label>
+            <div class="contact-input-wrapper">
+              <textarea id="contactMessage" class="contact-textarea" placeholder="Provide details regarding your document parsing requirement, system question, or issue..." required></textarea>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:14.5px;margin-top:8px;">
+            <i data-lucide="send" style="width:16px;height:16px;"></i> Send Inquiry Now
+          </button>
+        </form>
+      </div>
+
+      <!-- Right Column: Direct Channels & Hub -->
+      <div class="contact-info-card">
+        <h2 class="policy-h2" style="border:none;padding:0;margin-bottom:8px;">
+          <i data-lucide="radio" style="width:20px;height:20px;"></i> Direct Communication Channels
+        </h2>
+        <p class="policy-text" style="margin-bottom:24px;">
+          Connect with our core team through instant communication endpoints:
+        </p>
+
+        <!-- Channel 1: Support Email -->
+        <div class="channel-box">
+          <div class="channel-info">
+            <div class="channel-icon">
+              <i data-lucide="mail" style="width:18px;height:18px;"></i>
+            </div>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:#ffffff;">Technical Support</div>
+              <div style="font-size:12.5px;color:var(--text-secondary);font-family:var(--font-mono);">support@horizonocr.com</div>
+            </div>
+          </div>
+          <button type="button" class="copy-btn" onclick="copyContactEmail('support@horizonocr.com', this)">
+            <i data-lucide="copy" style="width:12px;height:12px;"></i> Copy
+          </button>
+        </div>
+
+        <!-- Channel 2: Security Email -->
+        <div class="channel-box">
+          <div class="channel-info">
+            <div class="channel-icon">
+              <i data-lucide="shield-alert" style="width:18px;height:18px;"></i>
+            </div>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:#ffffff;">Security & Vulnerability</div>
+              <div style="font-size:12.5px;color:var(--text-secondary);font-family:var(--font-mono);">security@horizonocr.com</div>
+            </div>
+          </div>
+          <button type="button" class="copy-btn" onclick="copyContactEmail('security@horizonocr.com', this)">
+            <i data-lucide="copy" style="width:12px;height:12px;"></i> Copy
+          </button>
+        </div>
+
+        <!-- Channel 3: GitHub -->
+        <div class="channel-box">
+          <div class="channel-info">
+            <div class="channel-icon">
+              <i data-lucide="github" style="width:18px;height:18px;"></i>
+            </div>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:#ffffff;">GitHub Developer Hub</div>
+              <div style="font-size:12px;color:var(--text-muted);">Issue tracker, PRs & RFCs</div>
+            </div>
+          </div>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;text-decoration:none;">
+            <i data-lucide="external-link" style="width:12px;height:12px;"></i> View
+          </a>
+        </div>
+
+        <!-- Channel 4: SLA Box -->
+        <div style="margin-top:28px;padding:20px;border-radius:var(--radius-md);background:rgba(255, 255, 255, 0.02);border:1px solid var(--border-subtle);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <i data-lucide="clock" style="width:16px;height:16px;color:#22c55e;"></i>
+            <span style="font-size:13.5px;font-weight:600;color:#ffffff;">Response Time Guarantee</span>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
+            Our technical support cluster monitors requests 24/7. All critical integration inquiries and bug reports are reviewed in under 24 hours.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive FAQ Section -->
+    <div class="faq-card-box" style="margin-bottom:48px;">
+      <div class="page-header" style="margin-bottom:28px;text-align:left;">
+        <div class="page-tag" style="margin-bottom:10px;">
+          <i data-lucide="help-circle" style="width:13px;height:13px;"></i> Frequently Asked Questions
+        </div>
+        <h2 style="font-family:var(--font-heading);font-size:26px;color:#ffffff;letter-spacing:-0.5px;">
+          Common Questions & Answers
+        </h2>
+      </div>
+
+      <div class="faq-list">
+        <!-- FAQ 1 -->
+        <div class="faq-item open">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>What document formats and file size limits are supported?</span>
+            <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+          </div>
+          <div class="faq-answer">
+            HorizonOCR natively supports multi-page <strong>PDF</strong> documents (up to 500 pages per file) and high-resolution <strong>PNG</strong> image scans. The maximum upload file size limit is <strong>50MB</strong> per file.
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>How does HorizonOCR ensure 100% document privacy?</span>
+            <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+          </div>
+          <div class="faq-answer">
+            All documents and extracted graphics are bound strictly to your authenticated <code>user_id</code>. Temporary rasterization files are immediately purged from server memory upon OCR completion. Your documents and extracted data are never sold or used to train third-party AI models.
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>How does the micro-text super-resolution engine work?</span>
+            <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+          </div>
+          <div class="faq-answer">
+            Our multi-scale DBNet vision detector identifies even faint text contours. Small bounding boxes (such as 6pt–8pt footnotes, serial codes, or subscripts) are scaled with Bicubic interpolation to a normalized height of 32px+ before recognition to guarantee maximum accuracy.
+          </div>
+        </div>
+
+        <!-- FAQ 4 -->
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Can HorizonOCR be deployed in a private air-gapped or on-premises environment?</span>
+            <i data-lucide="chevron-down" class="faq-chevron" style="width:18px;height:18px;"></i>
+          </div>
+          <div class="faq-answer">
+            Yes. HorizonOCR is container-ready (Docker / Gunicorn / SQLite WAL) and can run on air-gapped CPU or NVIDIA CUDA GPU servers with zero external internet dependencies. Reach out via the contact form for custom deployment guidance.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>

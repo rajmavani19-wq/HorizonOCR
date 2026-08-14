@@ -269,42 +269,38 @@ def run_ocr_structured(filepath: str) -> dict:
     except Exception:
         img_np = None
 
-    # ── Tier 1: EasyOCR English model ──────────────────────────────
-    try:
-        import easyocr  # noqa: F401
-    except ImportError:
-        pass
-    else:
-        if img_np is not None:
-            try:
-                reader = _get_easyocr_reader()
-                results = reader.readtext(img_np, detail=1, paragraph=False)
+    # ── Tier 1: ONNX Runtime Line-Level OCR (Zero DLL blocker, fast) ──
+    onnx_res = run_onnx_structured_ocr(filepath)
+    if onnx_res.get("text"):
+        print(f"[ONNX-OCR] Extracted {len(onnx_res['text'])} chars across {len(onnx_res['blocks'])} blocks")
+        return onnx_res
 
+    # ── Tier 2: EasyOCR English model (if available) ─────────────────
+    if _is_torch_available() and img_np is not None:
+        try:
+            reader = _get_easyocr_reader()
+            if reader is not None:
+                results = reader.readtext(img_np, detail=1, paragraph=False)
                 if results:
                     blocks = _build_structured_blocks(results, img_w, img_h)
                     text_lines = [b["text"] for b in blocks if b["text"]]
                     text = "\n".join(text_lines)
-
-                    print(f"[EasyOCR] Extracted {len(text)} chars "
-                          f"across {len(blocks)} blocks")
+                    print(f"[EasyOCR] Extracted {len(text)} chars across {len(blocks)} blocks")
                     return {
                         "text": text,
                         "engine": "easyocr",
                         "blocks": blocks,
                     }
-                else:
-                    print("[EasyOCR] No text regions found.")
-            except Exception as e:
-                print(f"[EasyOCR] Failed: {e}")
+        except Exception as e:
+            print(f"[EasyOCR] Skipped: {e}")
 
-    # ── Tier 2: Fallback — try all other engines ───────────────────
+    # ── Tier 3: Fallback — try all other engines in registry ────────
     ocr_text, engine_used = run_ocr(filepath)
 
-    # ── Tier 3: Generate synthetic blocks from any text source ─────
+    # ── Tier 4: Generate synthetic blocks from any text source ──────
     if ocr_text and ocr_text.strip():
         blocks = _synthetic_blocks_from_text(ocr_text, img_w or 800, img_h or 600)
-        print(f"[OCR-Fallback] {len(ocr_text)} chars via {engine_used}, "
-              f"{len(blocks)} synthetic blocks")
+        print(f"[OCR-Fallback] {len(ocr_text)} chars via {engine_used}, {len(blocks)} synthetic blocks")
         return {
             "text": ocr_text,
             "engine": engine_used or "fallback",
@@ -322,8 +318,21 @@ def run_ocr_structured(filepath: str) -> dict:
 #  Engine 1: EasyOCR — pure Python, no system deps
 # ══════════════════════════════════════════════════════════════════════
 
-# Cache the English EasyOCR Reader (built once, reused across calls)
 _EASYOCR_READER = None
+_TORCH_CHECKED = None
+
+
+def _is_torch_available():
+    """Fast check if PyTorch is loadable and not blocked by OS security policy."""
+    global _TORCH_CHECKED
+    if _TORCH_CHECKED is None:
+        try:
+            import torch
+            _ = torch.zeros(1)
+            _TORCH_CHECKED = True
+        except Exception:
+            _TORCH_CHECKED = False
+    return _TORCH_CHECKED
 
 
 def _get_easyocr_reader():
@@ -334,50 +343,56 @@ def _get_easyocr_reader():
     The reader is cached globally so it is built only once per process.
     """
     global _EASYOCR_READER
+    if not _is_torch_available():
+        return None
+
     if _EASYOCR_READER is None:
-        import easyocr
+        try:
+            import easyocr
 
-        easyocr_dir = os.path.join(model_cache.MODELS_DIR, "easyocr")
+            easyocr_dir = os.path.join(model_cache.MODELS_DIR, "easyocr")
 
-        det_file = os.path.join(easyocr_dir, "craft_mlt_25k.pth")
-        if os.path.isfile(det_file):
-            print(f"[EasyOCR] Using locally cached models from: {easyocr_dir}")
+            det_file = os.path.join(easyocr_dir, "craft_mlt_25k.pth")
+            if os.path.isfile(det_file):
+                print(f"[EasyOCR] Using locally cached models from: {easyocr_dir}")
 
-        _EASYOCR_READER = easyocr.Reader(
-            ["en"], gpu=False,
-            model_storage_directory=easyocr_dir,
-            verbose=False,
-        )
+            _EASYOCR_READER = easyocr.Reader(
+                ["en"], gpu=False,
+                model_storage_directory=easyocr_dir,
+                verbose=False,
+            )
 
-        # Protect model files from accidental deletion / re‑download.
-        for _fname in os.listdir(easyocr_dir):
-            _fpath = os.path.join(easyocr_dir, _fname)
-            if os.path.isfile(_fpath) and _fname.endswith(".pth"):
-                try:
-                    if sys.platform == "win32":
-                        import ctypes
-                        ctypes.windll.kernel32.SetFileAttributesW(
-                            _fpath, 1)
-                    else:
-                        os.chmod(_fpath, 0o444)
-                except OSError:
-                    pass
+            # Protect model files from accidental deletion / re‑download.
+            for _fname in os.listdir(easyocr_dir):
+                _fpath = os.path.join(easyocr_dir, _fname)
+                if os.path.isfile(_fpath) and _fname.endswith(".pth"):
+                    try:
+                        if sys.platform == "win32":
+                            import ctypes
+                            ctypes.windll.kernel32.SetFileAttributesW(_fpath, 1)
+                        else:
+                            os.chmod(_fpath, 0o444)
+                    except OSError:
+                        pass
+        except Exception as e:
+            print(f"[EasyOCR-Init] Failed: {e}")
+            _EASYOCR_READER = None
 
     return _EASYOCR_READER
 
 
 def try_easyocr(filepath: str) -> str:
     """OCR via EasyOCR (deep-learning, English only)."""
-    try:
-        import easyocr  # noqa: F811
-    except ImportError:
-        print("[EasyOCR] Not installed — pip install easyocr")
+    if not _is_torch_available():
         return ""
 
     try:
+        import easyocr  # noqa: F811
+        reader = _get_easyocr_reader()
+        if reader is None:
+            return ""
         img = Image.open(filepath)
         img_np = np.array(img.convert("RGB"))
-        reader = _get_easyocr_reader()
         results = reader.readtext(img_np, detail=0, paragraph=True)
         if results:
             text = "\n".join(results).strip()
@@ -454,7 +469,7 @@ def try_tesseract_pymupdf(filepath: str) -> str:
 def try_tesseract_pytesseract(filepath: str) -> str:
     """OCR via pytesseract (Python wrapper around Tesseract CLI, English)."""
     try:
-        import pytesseract
+        import pytesseract  # type: ignore
     except ImportError:
         print("[Tesseract-pytesseract] Not installed — pip install pytesseract")
         return ""
@@ -489,7 +504,7 @@ def _get_paddleocr_engine():
     """Get or create a PaddleOCR instance (English)."""
     global _PADDLEOCR_ENGINE
     if _PADDLEOCR_ENGINE is None:
-        from paddleocr import PaddleOCR
+        from paddleocr import PaddleOCR  # type: ignore
         _PADDLEOCR_ENGINE = PaddleOCR(
             use_angle_cls=True, lang="en", show_log=False
         )
@@ -499,7 +514,7 @@ def _get_paddleocr_engine():
 def try_paddleocr(filepath: str) -> str:
     """OCR via PaddleOCR (English)."""
     try:
-        from paddleocr import PaddleOCR  # noqa: F811
+        from paddleocr import PaddleOCR  # type: ignore # noqa: F811
     except ImportError:
         print("[PaddleOCR] Not installed — pip install paddleocr")
         return ""
@@ -557,8 +572,8 @@ def try_doctr(filepath: str) -> str:
 def try_trocr(filepath: str) -> str:
     """OCR via TrOCR (Microsoft's Transformer OCR via HuggingFace, English)."""
     try:
-        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-        import torch
+        from transformers import TrOCRProcessor, VisionEncoderDecoderModel  # type: ignore
+        import torch  # type: ignore
     except ImportError:
         print("[TrOCR] Not installed — pip install transformers torch")
         return ""
@@ -587,45 +602,231 @@ def try_trocr(filepath: str) -> str:
     return ""
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  Engine 6: RapidOCR — lightweight ONNX Runtime backend
-# ══════════════════════════════════════════════════════════════════════
-
-_RAPIDOCR_ENGINE = None
+_ONNX_RECOGNIZERS = None
+_ONNX_DETECTOR = None
 
 
-def _get_rapidocr_engine():
-    """Build the RapidOCR engine once and reuse it (~13 MB ONNX models)."""
-    global _RAPIDOCR_ENGINE
-    if _RAPIDOCR_ENGINE is None:
-        from rapidocr_onnxruntime import RapidOCR  # type: ignore[import-not-found]
-        _RAPIDOCR_ENGINE = RapidOCR()
-    return _RAPIDOCR_ENGINE
+def _get_onnx_text_detector():
+    """Build or retrieve the DBNet ONNX Text Detector session with multi-threading."""
+    global _ONNX_DETECTOR
+    if _ONNX_DETECTOR is None:
+        try:
+            import onnxruntime as ort  # type: ignore
+            import rapidocr_onnxruntime  # type: ignore
+            base_dir = os.path.dirname(rapidocr_onnxruntime.__file__)
+            det_model_path = os.path.join(base_dir, "models", "ch_PP-OCRv3_det_infer.onnx")
+            if os.path.isfile(det_model_path):
+                cpu_threads = min(8, os.cpu_count() or 4)
+                opts = ort.SessionOptions()
+                opts.intra_op_num_threads = cpu_threads
+                opts.inter_op_num_threads = 2
+                opts.enable_cpu_mem_arena = True
+                opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+                _ONNX_DETECTOR = ort.InferenceSession(
+                    det_model_path,
+                    sess_options=opts,
+                    providers=["CPUExecutionProvider"],
+                )
+        except Exception as e:
+            print(f"[ONNX-Detector-Init] Failed: {e}")
+    return _ONNX_DETECTOR
+
+
+def _get_onnx_text_recognizer():
+    """Build or retrieve the lightweight ONNX Text Recognizer."""
+    global _ONNX_RECOGNIZERS
+    if _ONNX_RECOGNIZERS is None:
+        try:
+            import yaml
+            from rapidocr_onnxruntime.ch_ppocr_v3_rec.text_recognize import TextRecognizer  # type: ignore
+            import rapidocr_onnxruntime  # type: ignore
+            base_dir = os.path.dirname(rapidocr_onnxruntime.__file__)
+            rec_cfg_path = os.path.join(base_dir, "ch_ppocr_v3_rec", "config.yaml")
+            model_path = os.path.join(base_dir, "models", "ch_PP-OCRv3_rec_infer.onnx")
+            if os.path.isfile(rec_cfg_path) and os.path.isfile(model_path):
+                with open(rec_cfg_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f)
+                cfg["model_path"] = model_path
+                cfg["rec_batch_num"] = 32
+                _ONNX_RECOGNIZERS = TextRecognizer(cfg)
+        except Exception as e:
+            print(f"[ONNX-Recognizer-Init] Failed: {e}")
+            _ONNX_RECOGNIZERS = None
+    return _ONNX_RECOGNIZERS
+
+
+def _merge_horizontal_boxes(boxes, img_w, img_h):
+    """
+    Merge adjacent or overlapping word bounding boxes on the same line
+    into full-line bounding boxes for significantly faster recognition and higher accuracy.
+    """
+    if not boxes:
+        return []
+    # Sort primarily by Y (binned to line height), secondarily by X
+    boxes = sorted(boxes, key=lambda b: (round(b[1] / 14) * 14, b[0]))
+    merged = []
+    current = list(boxes[0])
+
+    for b in boxes[1:]:
+        cx, cy, cw, ch = current
+        bx, by, bw, bh = b
+
+        vert_overlap = min(cy + ch, by + bh) - max(cy, by)
+        min_h = min(ch, bh)
+        is_same_line = vert_overlap > 0.40 * min_h or abs((cy + ch / 2) - (by + bh / 2)) < 0.55 * min_h
+        horiz_dist = bx - (cx + cw)
+
+        if is_same_line and -10 <= horiz_dist <= max(22, int(min_h * 2.2)):
+            nx = min(cx, bx)
+            ny = min(cy, by)
+            nw = max(cx + cw, bx + bw) - nx
+            nh = max(cy + ch, by + bh) - ny
+            current = [nx, ny, nw, nh]
+        else:
+            merged.append(tuple(current))
+            current = list(b)
+
+    merged.append(tuple(current))
+    return merged
+
+
+def run_onnx_structured_ocr(filepath_or_img) -> dict:
+    """
+    High-throughput ONNX DBNet + Multi-Threaded Line Recognizer OCR pipeline.
+    Optimized for sub-second turnaround on multi-line documents and scans.
+    """
+    try:
+        import cv2  # type: ignore
+
+        recognizer = _get_onnx_text_recognizer()
+        if not recognizer:
+            return {"text": "", "engine": "none", "blocks": []}
+
+        detector = _get_onnx_text_detector()
+
+        if isinstance(filepath_or_img, np.ndarray):
+            img_np = filepath_or_img
+        elif isinstance(filepath_or_img, Image.Image):
+            img_np = np.array(filepath_or_img.convert("RGB"))
+        else:
+            img = Image.open(filepath_or_img)
+            img_np = np.array(img.convert("RGB"))
+
+        img_h, img_w = img_np.shape[:2]
+        if img_h < 5 or img_w < 5:
+            return {"text": "", "engine": "none", "blocks": []}
+
+        raw_boxes = []
+
+        # ── Pass 1: DBNet Text Detection with optimal receptive field ──
+        if detector is not None:
+            try:
+                target_side = min(960, max(img_h, img_w))
+                ratio = target_side / max(img_h, img_w)
+                resize_h = int(round(img_h * ratio / 32) * 32)
+                resize_w = int(round(img_w * ratio / 32) * 32)
+                resized = cv2.resize(img_np, (resize_w, resize_h), interpolation=cv2.INTER_LINEAR)
+
+                norm = (resized.astype("float32") / 255.0 - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
+                chw = norm.transpose((2, 0, 1))[np.newaxis, ...].astype("float32")
+
+                pred = detector.run(None, {"x": chw})[0][0, 0]
+
+                mask = (pred > 0.20).astype("uint8") * 255
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 3))
+                mask = cv2.dilate(mask, kernel, iterations=1)
+
+                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                scale_x = img_w / resize_w
+                scale_y = img_h / resize_h
+
+                for cnt in contours:
+                    x, y, bw, bh = cv2.boundingRect(cnt)
+                    if bw > 3 and bh > 3:
+                        ox = int(max(0, (x - 2) * scale_x))
+                        oy = int(max(0, (y - 2) * scale_y))
+                        ow = int(min(img_w - ox, (bw + 4) * scale_x))
+                        oh = int(min(img_h - oy, (bh + 4) * scale_y))
+                        if ow > 4 and oh > 4:
+                            raw_boxes.append((ox, oy, ow, oh))
+            except Exception as det_err:
+                print(f"[ONNX-DBNet-Det] Warning: {det_err}")
+
+        # ── Pass 2: Morphological Fallback if DBNet found no boxes ──
+        if not raw_boxes:
+            gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+            kernel_w = max(12, int(img_w * 0.03))
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_w, 3))
+            dilated = cv2.dilate(thresh, kernel, iterations=2)
+            contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for cnt in contours:
+                x, y, w, h = cv2.boundingRect(cnt)
+                if w > 6 and h > 4:
+                    raw_boxes.append((x, y, w, h))
+
+        if not raw_boxes:
+            raw_boxes = [(0, 0, img_w, img_h)]
+
+        # Merge horizontal boxes into clean text lines
+        boxes = _merge_horizontal_boxes(raw_boxes, img_w, img_h)
+
+        # Prepare crops with adaptive height super-resolution for micro-text
+        crops = []
+        for (x, y, w, h) in boxes:
+            crop = img_np[max(0, y - 2):min(img_h, y + h + 2), max(0, x - 2):min(img_w, x + w + 2)]
+            ch, cw = crop.shape[:2]
+            if ch < 32:
+                scale_rec = 32.0 / max(ch, 1)
+                crop = cv2.resize(crop, (max(8, int(cw * scale_rec)), 32), interpolation=cv2.INTER_LINEAR)
+            crops.append(crop)
+
+        res, _ = recognizer(crops)
+
+        blocks = []
+        text_lines = []
+        for idx, ((x, y, w, h), (txt, conf)) in enumerate(zip(boxes, res)):
+            clean_txt = str(txt).strip()
+            if not clean_txt or len(clean_txt) == 0:
+                continue
+            text_lines.append(clean_txt)
+            x_pct = round(x / img_w * 100, 1)
+            y_pct = round(y / img_h * 100, 1)
+            w_pct = round(w / img_w * 100, 1)
+            h_pct = round(h / img_h * 100, 1)
+            blocks.append({
+                "id": idx + 1,
+                "x": x_pct,
+                "y": y_pct,
+                "w": w_pct,
+                "h": h_pct,
+                "text": clean_txt,
+                "confidence": round(float(conf) * 100, 1) if conf else 92.0,
+                "type": "heading" if (y_pct < 15 and len(clean_txt) < 60) else "paragraph"
+            })
+
+        return {
+            "text": "\n".join(text_lines),
+            "engine": "onnx-rapidocr",
+            "blocks": blocks,
+        }
+    except Exception as e:
+        print(f"[ONNX-OCR] Error: {e}")
+        return {"text": "", "engine": "none", "blocks": []}
+    except Exception as e:
+        print(f"[ONNX-OCR] Error: {e}")
+        return {"text": "", "engine": "none", "blocks": []}
+
+
+def try_onnx_ocr_direct(filepath: str) -> str:
+    """OCR via pure-ONNX line recognizer."""
+    res = run_onnx_structured_ocr(filepath)
+    return res.get("text", "")
 
 
 def try_rapidocr(filepath: str) -> str:
-    """OCR via RapidOCR ONNX Runtime (English)."""
-    try:
-        import rapidocr_onnxruntime  # noqa: F401  # type: ignore[import-not-found]
-    except ImportError:
-        print("[RapidOCR] Not installed — pip install rapidocr_onnxruntime")
-        return ""
-
-    try:
-        engine = _get_rapidocr_engine()
-        result, _ = engine(filepath)
-        if result:
-            lines = []
-            for item in result:
-                if len(item) >= 2 and item[1]:
-                    lines.append(str(item[1]).strip())
-            if lines:
-                text = "\n".join(lines)
-                print(f"[RapidOCR] Extracted {len(text)} chars")
-                return text
-    except Exception as e:
-        print(f"[RapidOCR] Error: {e}")
-    return ""
+    """OCR via RapidOCR ONNX pipeline."""
+    return try_onnx_ocr_direct(filepath)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -635,13 +836,10 @@ def try_rapidocr(filepath: str) -> str:
 # Each entry: (engine_name, callable)
 # The callable signature is: fn(filepath) → str
 _ENGINE_REGISTRY = [
+    ("onnx-rapidocr", try_onnx_ocr_direct),
     ("easyocr",       try_easyocr),
     ("tesseract-pyt", try_tesseract_pytesseract),
-    ("tesseract-pmu", try_tesseract_pymupdf),
     ("paddleocr",     try_paddleocr),
-    ("doctr",         try_doctr),
-    ("rapidocr",      try_rapidocr),
-    ("trocr",         try_trocr),
 ]
 
 

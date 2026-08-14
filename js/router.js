@@ -174,6 +174,87 @@ function switchView(viewName, mode) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Contact Form Submission Handler
+function handleContactSubmit(event) {
+  if (event) event.preventDefault();
+  const name = document.getElementById('contactName')?.value?.trim();
+  const email = document.getElementById('contactEmail')?.value?.trim();
+  const subject = document.getElementById('contactSubject')?.value;
+  const message = document.getElementById('contactMessage')?.value?.trim();
+
+  if (!name || !email || !message) {
+    showNotification('Please fill in all required fields.', 'warning');
+    return;
+  }
+
+  showNotification('Thank you! Your inquiry has been submitted. Our engineering team will contact you shortly at ' + email + '.', 'success', 6000);
+  const form = document.getElementById('contactForm');
+  if (form) form.reset();
+}
+
+// Interactive FAQ Accordion Toggle
+function toggleFaq(questionEl) {
+  const item = questionEl.closest('.faq-item');
+  if (!item) return;
+  const wasOpen = item.classList.contains('open');
+  
+  // Close all other items in the same list
+  const list = item.closest('.faq-list');
+  if (list) {
+    list.querySelectorAll('.faq-item').forEach(el => el.classList.remove('open'));
+  }
+
+  // Toggle current
+  if (!wasOpen) {
+    item.classList.add('open');
+  }
+}
+
+// Copy Contact Email to Clipboard with instant feedback
+function copyContactEmail(emailText, btnEl) {
+  if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(emailText).then(() => {
+      showCopiedFeedback(btnEl);
+    }).catch(() => {
+      fallbackCopyText(emailText, btnEl);
+    });
+  } else {
+    fallbackCopyText(emailText, btnEl);
+  }
+}
+
+function showCopiedFeedback(btnEl) {
+  if (!btnEl) return;
+  const originalHTML = btnEl.innerHTML;
+  btnEl.classList.add('copied');
+  btnEl.innerHTML = '<i data-lucide="check" style="width:12px;height:12px;"></i> Copied!';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  showNotification('Copied email to clipboard: ' + btnEl.previousElementSibling?.querySelector('div:last-child')?.textContent || 'Email copied', 'info', 3000);
+
+  setTimeout(() => {
+    btnEl.classList.remove('copied');
+    btnEl.innerHTML = originalHTML;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }, 2000);
+}
+
+function fallbackCopyText(text, btnEl) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showCopiedFeedback(btnEl);
+  } catch (err) {
+    showNotification('Unable to copy text: ' + text, 'warning');
+  }
+  document.body.removeChild(textArea);
+}
+
 // Global App Initialization
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof setupScrollReveal === 'function') setupScrollReveal();

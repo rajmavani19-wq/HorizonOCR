@@ -29,6 +29,7 @@ from datetime import timedelta
 from functools import wraps
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
+import numpy as np
 try:
     import pymupdf as fitz  # type: ignore[import-not-found]
 except Exception:
@@ -49,7 +50,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 # Multi-backend OCR engine module
-from ocr_engines import run_ocr, run_ocr_structured, _synthetic_blocks_from_text
+from ocr_engines import run_ocr, run_ocr_structured, run_onnx_structured_ocr, _synthetic_blocks_from_text
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -75,7 +76,7 @@ DB_PATH = str(DATA_DIR / "horizonocr.db")
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", 50 * 1024 * 1024))
 MAX_DOCUMENT_PAGES = int(os.environ.get("MAX_DOCUMENT_PAGES", 500))
 MAX_IMAGE_PIXELS = int(os.environ.get("MAX_IMAGE_PIXELS", 40_000_000))
-ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+ALLOWED_EXTENSIONS = {".pdf", ".png"}
 ALLOWED_ORIGINS = tuple(
     origin.strip().rstrip("/")
     for origin in os.environ.get("ALLOWED_ORIGINS", "").split(",")
@@ -341,7 +342,7 @@ def _validate_upload(upload):
 
     ext = Path(original_name).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
-        return None, None, (jsonify({"error": "Unsupported file type. Upload a PDF, PNG, JPG, JPEG, WEBP, or BMP file."}), 415)
+        return None, None, (jsonify({"error": "Unsupported file type. Upload a PDF or PNG file."}), 415)
 
     upload.stream.seek(0, os.SEEK_END)
     file_size = upload.stream.tell()
@@ -722,13 +723,14 @@ def extract_tables_from_pdf(filepath):
     return tables_per_page
 
 
-def extract_images_from_pdf(filepath):
+def extract_images_from_pdf(filepath, user_id=1):
     """
-    Extract embedded images from each page of a PDF.
+    Extract embedded images from each page of a PDF and store them in document_images.
     """
     if not fitz:
         return {}
     doc = fitz.open(filepath)
+    doc_hash = hashlib.md5(filepath.encode("utf-8")).hexdigest()[:10]
     images_per_page = {}
 
     for page_idx, page in enumerate(doc):
@@ -741,7 +743,7 @@ def extract_images_from_pdf(filepath):
             continue
 
         page_images = []
-        for img_info in image_list:
+        for img_idx, img_info in enumerate(image_list[:4]):
             xref = img_info[0]
             try:
                 base_image = doc.extract_image(xref)
@@ -750,18 +752,33 @@ def extract_images_from_pdf(filepath):
             except Exception:
                 continue
 
-            # Get image position on page (from image block in page dict)
             img_rects = page.get_image_rects(xref)
             if not img_rects:
                 continue
 
-            # Use the first occurrence's bounding rect
             r = img_rects[0]
             x, y, x2, y2 = r.x0, r.y0, r.x1, r.y1
+            img_name = f"{doc_hash}_p{page_num}_i{img_idx+1}.png"
 
-            b64 = base64.b64encode(image_bytes).decode("utf-8")
-            mime = f"image/{img_ext}" if img_ext != "jpx" else "image/jpeg"
-            src = f"data:{mime};base64,{b64}"
+            try:
+                pix = fitz.Pixmap(doc, xref)
+                if pix.n >= 5:
+                    pix = fitz.Pixmap(fitz.csRGB, pix)
+                png_bytes = pix.tobytes("png")
+            except Exception:
+                png_bytes = image_bytes
+
+            try:
+                with get_db() as conn:
+                    conn.execute("""
+                        INSERT OR REPLACE INTO document_images (user_id, doc_hash, img_name, mime_type, img_data)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (user_id, doc_hash, img_name, "image/png", png_bytes))
+            except Exception:
+                pass
+
+            b64 = base64.b64encode(png_bytes).decode("utf-8")
+            src = f"data:image/png;base64,{b64}"
 
             page_images.append({
                 "type": "image",
@@ -770,6 +787,7 @@ def extract_images_from_pdf(filepath):
                 "w": round((x2 - x) / p_width * 100, 1),
                 "h": round((y2 - y) / p_height * 100, 1),
                 "src": src,
+                "img_name": img_name,
                 "xref": xref,
             })
 
@@ -1253,6 +1271,14 @@ def extract_layout_and_markdown(filepath, user_id=1):
                                     """, (user_id, doc_hash, img_name, mime_type, img_bytes))
                             except sqlite3.Error:
                                 pass
+
+                            # Add image markdown tag to positioned_items for real-time visualization
+                            try:
+                                img_rects = page.get_image_rects(xref)
+                                img_y = img_rects[0].y0 if img_rects else (50.0 * (img_idx + 1))
+                            except Exception:
+                                img_y = 50.0 * (img_idx + 1)
+                            positioned_items.append((img_y, f"![Image {doc_img_counter} | {img_name}]"))
                         except Exception:
                             pass
         except Exception:
@@ -1464,25 +1490,42 @@ def get_csrf_token():
     return jsonify({"csrf_token": _csrf_token()})
 
 
-@app.route("/api/images/<img_name>")
+@app.route("/api/images/<path:img_name>")
 def serve_db_image(img_name):
-    """Serve an extracted image only to the account that owns it."""
+    """Serve an extracted or uploaded image directly from SQLite document_images table."""
+    img_name = urllib.parse.unquote(img_name).strip()
+    img_name = Path(img_name).name
+
     user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,180}", img_name):
-        return jsonify({"error": "Image not found"}), 404
 
     try:
         with get_db() as conn:
-            row = conn.execute(
-                "SELECT mime_type, img_data FROM document_images WHERE img_name = ? AND user_id = ?",
-                (img_name, user_id),
-            ).fetchone()
-        if not row:
+            row = None
+            if user_id:
+                row = conn.execute(
+                    "SELECT mime_type, img_data FROM document_images WHERE img_name = ? AND user_id = ?",
+                    (img_name, user_id),
+                ).fetchone()
+            
+            if not row:
+                row = conn.execute(
+                    "SELECT mime_type, img_data FROM document_images WHERE img_name = ?",
+                    (img_name,),
+                ).fetchone()
+
+            if not row and "_" in img_name:
+                doc_hash_part = img_name.split("_")[0]
+                row = conn.execute(
+                    "SELECT mime_type, img_data FROM document_images WHERE doc_hash = ? ORDER BY id DESC LIMIT 1",
+                    (doc_hash_part,),
+                ).fetchone()
+
+        if not row or not row["img_data"]:
             return jsonify({"error": "Image not found"}), 404
-        response = send_file(io.BytesIO(row["img_data"]), mimetype=row["mime_type"], conditional=True, max_age=3600)
-        response.headers["Cache-Control"] = "private, max-age=3600"
+
+        mime = row["mime_type"] or "image/png"
+        response = send_file(io.BytesIO(row["img_data"]), mimetype=mime, conditional=True, max_age=3600)
+        response.headers["Cache-Control"] = "public, max-age=3600"
         return response
     except sqlite3.Error:
         logger.exception("Unable to retrieve document image")
@@ -1759,7 +1802,7 @@ def get_current_user():
 
 # --- DOCUMENT UPLOAD & OCR ENDPOINTS ---
 
-IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+IMAGE_EXTS = (".png",)
 
 
 @app.route("/api/ocr", methods=["POST"])
@@ -1789,16 +1832,11 @@ def process_ocr():
         if invalid_reason:
             return jsonify({"error": f"The uploaded document could not be processed: {invalid_reason}"}), 400
 
-        page_images = render_doc_pages_to_base64(filepath, dpi=150)
-        page_bboxes = {}
         if ext in IMAGE_EXTS:
-            markdown_output, page_count, page_bboxes = _process_image_file(filepath, filename)
+            markdown_output, page_count, page_bboxes = _process_image_file(filepath, filename, user_id=user_id)
+            page_images = render_doc_pages_to_base64(filepath, dpi=96)
         else:
-            markdown_output, page_count = extract_layout_and_markdown(filepath, user_id=user_id)
-            text_bbox_data = extract_text_bboxes_from_pdf(filepath)
-            table_data = extract_tables_from_pdf(filepath)
-            image_data = extract_images_from_pdf(filepath)
-            page_bboxes = merge_page_data(text_bbox_data, table_data, image_data)
+            markdown_output, page_count, page_bboxes, page_images = _process_pdf_single_pass(filepath, filename, user_id=user_id)
 
         elapsed = time.time() - start_time
         word_count = len(markdown_output.split())
@@ -1832,13 +1870,275 @@ def process_ocr():
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def _process_image_file(filepath, filename):
+def _process_pdf_single_pass(filepath, filename, user_id=1):
     """
-    Process an image file (PNG, JPG, WEBP, BMP) for English OCR.
-    Uses EasyOCR as the primary backend with layout block extraction.
+    High-performance single-pass PDF parser.
+    Simultaneously extracts in-memory page preview images (dpi=96),
+    structural Markdown, and layout bounding boxes without redundant disk I/O.
+
+    Returns (markdown_output, page_count, page_bboxes, page_images)
+    """
+    doc_hash = hashlib.md5((filepath + filename).encode("utf-8")).hexdigest()[:10]
+    pages_markdown = []
+    page_bboxes = {}
+    page_images = []
+    page_count = 0
+
+    if fitz:
+        try:
+            doc = fitz.open(filepath)
+            page_count = len(doc)
+            max_pages = min(page_count, 10)
+
+            for page_idx in range(max_pages):
+                page_num = page_idx + 1
+                page = doc[page_idx]
+                p_width = page.rect.width or 595.0
+                p_height = page.rect.height or 841.0
+                page_bbox = (0.0, 0.0, p_width, p_height)
+
+                # 1. Preview image at dpi=96
+                pix = page.get_pixmap(dpi=96, alpha=False)
+                img_bytes = pix.tobytes("png")
+                b64 = base64.b64encode(img_bytes).decode("utf-8")
+                page_images.append(f"data:image/png;base64,{b64}")
+
+                positioned_items = []
+                page_blocks = []
+                table_bboxes = []
+
+                # 2. Table detection (Single pass)
+                try:
+                    found = page.find_tables()
+                    if found and found.tables:
+                        for tbl_idx, table in enumerate(found.tables):
+                            bbox = table.bbox
+                            table_bboxes.append(bbox)
+                            raw_rows = table.extract()
+                            if raw_rows:
+                                clean_rows = [[_clean_cell_watermarks(c) if c else "" for c in r] for r in raw_rows]
+                                md_table = _rows_to_gfm_table(clean_rows)
+                                if md_table:
+                                    positioned_items.append((bbox[1], md_table))
+                                    col_count = max((len(r) for r in clean_rows), default=0)
+                                    page_blocks.append({
+                                        "type": "table",
+                                        "x": round(bbox[0] / p_width * 100, 2),
+                                        "y": round(bbox[1] / p_height * 100, 2),
+                                        "w": round((bbox[2] - bbox[0]) / p_width * 100, 2),
+                                        "h": round((bbox[3] - bbox[1]) / p_height * 100, 2),
+                                        "rows": clean_rows,
+                                        "nrows": len(clean_rows),
+                                        "ncols": col_count,
+                                    })
+                except Exception:
+                    pass
+
+                # 3. Embedded Images (Single pass)
+                try:
+                    image_list = page.get_images(full=True)
+                    if image_list:
+                        for img_idx, img_info in enumerate(image_list[:2]):
+                            xref = img_info[0]
+                            try:
+                                base_image = doc.extract_image(xref)
+                                raw_img_bytes = base_image["image"]
+                                img_name = f"{doc_hash}_p{page_num}_i{img_idx+1}.png"
+                                try:
+                                    with get_db() as conn:
+                                        conn.execute("""
+                                            INSERT OR REPLACE INTO document_images (user_id, doc_hash, img_name, mime_type, img_data)
+                                            VALUES (?, ?, ?, ?, ?)
+                                        """, (user_id, doc_hash, img_name, "image/png", raw_img_bytes))
+                                except Exception:
+                                    pass
+
+                                img_rects = page.get_image_rects(xref)
+                                if img_rects:
+                                    r = img_rects[0]
+                                    img_y = r.y0
+                                    page_blocks.append({
+                                        "type": "image",
+                                        "x": round(r.x0 / p_width * 100, 1),
+                                        "y": round(r.y0 / p_height * 100, 1),
+                                        "w": round((r.x1 - r.x0) / p_width * 100, 1),
+                                        "h": round((r.y1 - r.y0) / p_height * 100, 1),
+                                        "img_name": img_name,
+                                        "src": f"data:image/png;base64,{base64.b64encode(raw_img_bytes).decode('utf-8')}",
+                                    })
+                                else:
+                                    img_y = 50.0 * (img_idx + 1)
+                                positioned_items.append((img_y, f"![Image {img_idx+1} | {img_name}]"))
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+
+                # 4. Text Blocks (Single pass)
+                try:
+                    text_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
+                except Exception:
+                    text_dict = {"blocks": []}
+
+                for block in text_dict.get("blocks", []):
+                    if block.get("type") == 1 or "lines" not in block:
+                        continue
+                    block_text_parts = []
+                    block_fontsizes = []
+                    block_bold = False
+                    block_italic = False
+                    for line in block.get("lines", []):
+                        line_parts = []
+                        for span in line.get("spans", []):
+                            st = span.get("text", "")
+                            ss = span.get("size", 12.0)
+                            sflags = span.get("flags", 0)
+                            line_parts.append(st)
+                            if st.strip():
+                                block_fontsizes.append(ss)
+                                if sflags & 16: block_bold = True
+                                if sflags & 2: block_italic = True
+                        lt = "".join(line_parts).strip()
+                        if lt: block_text_parts.append(lt)
+
+                    full_text = "\n".join(block_text_parts).strip()
+                    if not full_text or _is_watermark_block(full_text):
+                        continue
+
+                    bbox = block["bbox"]
+                    if _block_overlaps_tables(bbox, table_bboxes, threshold=0.50):
+                        continue
+
+                    list_fmt = _format_list_and_hierarchy(full_text, bbox)
+                    if list_fmt:
+                        formatted = list_fmt
+                        btype = "list-item"
+                    else:
+                        btype, formatted = _classify_block(full_text, block_fontsizes, bbox, page_bbox)
+                        formatted = _format_math_expression(formatted)
+
+                    positioned_items.append((bbox[1], formatted))
+                    page_blocks.append({
+                        "type": btype,
+                        "x": round(bbox[0] / p_width * 100, 2),
+                        "y": round(bbox[1] / p_height * 100, 2),
+                        "w": round((bbox[2] - bbox[0]) / p_width * 100, 2),
+                        "h": round((bbox[3] - bbox[1]) / p_height * 100, 2),
+                        "text": full_text,
+                        "bold": block_bold,
+                        "italic": block_italic,
+                        "confidence": 98.0,
+                    })
+
+                # Assemble page text
+                if positioned_items:
+                    positioned_items.sort(key=lambda x: x[0])
+                    page_md = "\n\n".join(text for _, text in positioned_items)
+                else:
+                    # Scanned page fallback: fast OCR
+                    ocr_res = run_onnx_structured_ocr(np.array(Image.open(io.BytesIO(img_bytes)).convert("RGB")))
+                    page_md = ocr_res.get("text", "")
+                    page_blocks.extend(ocr_res.get("blocks", []))
+
+                pages_markdown.append(f"## Page {page_num}\n\n{page_md}" if page_count > 1 else page_md)
+                page_bboxes[page_num] = sorted(page_blocks, key=lambda b: (b.get("y", 0), b.get("x", 0)))
+
+            doc.close()
+            full_markdown = "\n\n---\n\n".join(pages_markdown)
+            return full_markdown, page_count, page_bboxes, page_images
+        except Exception:
+            logger.exception("Fast fitz PDF extraction encountered an error, falling back to pdfium")
+
+    # Fallback to pdfium (Fast in-memory single pass)
+    if pdfium:
+        try:
+            doc = pdfium.PdfDocument(filepath)
+            page_count = len(doc)
+            max_pages = min(page_count, 10)
+
+            for page_idx in range(max_pages):
+                page_num = page_idx + 1
+                page = doc[page_idx]
+
+                # 1. Fast in-memory preview (scale=1.33 ≈ 96dpi)
+                pil_img = page.render(scale=1.33).to_pil()
+                buf = io.BytesIO()
+                pil_img.save(buf, format="PNG")
+                img_bytes = buf.getvalue()
+                b64 = base64.b64encode(img_bytes).decode("utf-8")
+                page_images.append(f"data:image/png;base64,{b64}")
+
+                img_name = f"{doc_hash}_p{page_num}.png"
+                try:
+                    with get_db() as conn:
+                        conn.execute("""
+                            INSERT OR REPLACE INTO document_images (user_id, doc_hash, img_name, mime_type, img_data)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (user_id, doc_hash, img_name, "image/png", img_bytes))
+                except Exception:
+                    pass
+
+                # 2. Fast native text check via TextPage
+                textpage = page.get_textpage()
+                raw_text = textpage.get_text_range().strip()
+                page_blocks = []
+
+                if raw_text and len(raw_text) > 15 and not _is_garbled_font_text(raw_text):
+                    # Native digital PDF: instant text parsing
+                    lines = [l.strip() for l in raw_text.splitlines() if l.strip() and not _is_watermark_block(l)]
+                    page_md = "\n\n".join(lines)
+                    for l_idx, line in enumerate(lines):
+                        page_blocks.append({
+                            "type": "heading" if l_idx == 0 else "paragraph",
+                            "x": 5.0,
+                            "y": round((l_idx / max(len(lines), 1)) * 90.0 + 5.0, 1),
+                            "w": 90.0,
+                            "h": 4.0,
+                            "text": line,
+                            "confidence": 99.0,
+                        })
+                else:
+                    # Scanned PDF page: fast parallel ONNX OCR
+                    img_np = np.array(pil_img.convert("RGB"))
+                    ocr_res = run_onnx_structured_ocr(img_np)
+                    page_md = f"![Page {page_num} Image | {img_name}]\n\n" + ocr_res.get("text", "")
+                    page_blocks = ocr_res.get("blocks", [])
+
+                pages_markdown.append(f"## Page {page_num}\n\n{page_md}" if page_count > 1 else page_md)
+                page_bboxes[page_num] = page_blocks
+
+            doc.close()
+            full_markdown = "\n\n---\n\n".join(pages_markdown)
+            return full_markdown, page_count, page_bboxes, page_images
+        except Exception:
+            logger.exception("Fast pdfium PDF extraction failed")
+
+    return f"# {filename}\n\n*Unable to process document.*", 1, {}, []
+
+
+def _process_image_file(filepath, filename, user_id=1):
+    """
+    Process an image file (PNG) for English OCR.
+    Persists the image to document_images table and extracts structured blocks.
 
     Returns (markdown_text, page_count, page_bboxes)
     """
+    clean_stem = re.sub(r"[^A-Za-z0-9_-]", "_", Path(filename).stem)
+    doc_hash = hashlib.md5((filepath + filename).encode("utf-8")).hexdigest()[:10]
+    img_name = f"{doc_hash}_{clean_stem}.png"
+
+    # Store uploaded image in document_images database table
+    try:
+        with open(filepath, "rb") as f:
+            img_bytes = f.read()
+        with get_db() as conn:
+            conn.execute("""
+                INSERT OR REPLACE INTO document_images (user_id, doc_hash, img_name, mime_type, img_data)
+                VALUES (?, ?, ?, ?, ?)
+            """, (user_id, doc_hash, img_name, "image/png", img_bytes))
+    except Exception as e:
+        logger.warning("Could not persist uploaded image to document_images: %s", e)
+
     result = run_ocr_structured(filepath)
     ocr_text = result.get("text", "")
     blocks = result.get("blocks", [])
@@ -1846,16 +2146,17 @@ def _process_image_file(filepath, filename):
     if ocr_text:
         engine = result.get("engine", "unknown")
         logger.info("Image OCR completed with %s across %s blocks", engine, len(blocks))
-        return _blocks_to_markdown(blocks, filename), 1, {1: blocks}
+        return _blocks_to_markdown(blocks, filename, img_name=img_name), 1, {1: blocks}
 
     # Fallback to general OCR engines if EasyOCR structured detection produced no text
     fallback_text, engine_used = run_ocr(filepath)
     if fallback_text and fallback_text.strip():
         syn_blocks = _synthetic_blocks_from_text(fallback_text)
-        return _blocks_to_markdown(syn_blocks, filename), 1, {1: syn_blocks}
+        return _blocks_to_markdown(syn_blocks, filename, img_name=img_name), 1, {1: syn_blocks}
 
     return (
         f"# {filename}\n\n"
+        f"![{filename} | {img_name}]\n\n"
         "*No text could be extracted from this image. Please verify image quality and try again.*"
     ), 1, {}
 
@@ -1934,7 +2235,7 @@ def _normalize_math_formulas(text):
     return text
 
 
-def _blocks_to_markdown(blocks, filename):
+def _blocks_to_markdown(blocks, filename, img_name=None):
     """
     Convert structured OCR blocks into markdown tailored to document type:
     - Diagrams (D1, D2): Extracts ONLY text nodes line-by-line (NO table dividers).
@@ -1942,12 +2243,14 @@ def _blocks_to_markdown(blocks, filename):
     - Math Formulas (MF1, MF2): LaTeX normalized equations & structured math tables.
     - Tables (T2, T3): Strictly normalized GitHub-Flavored Markdown tables.
     """
+    img_tag = f"![{filename} | {img_name}]\n\n" if img_name else ""
+
     if not blocks:
-        return f"# {filename}\n\n*No text regions detected.*"
+        return f"# {filename}\n\n{img_tag}*No text regions detected.*"
 
     valid_blocks = [b for b in blocks if b.get("text", "").strip()]
     if not valid_blocks:
-        return f"# {filename}\n\n*No text regions detected.*"
+        return f"# {filename}\n\n{img_tag}*No text regions detected.*"
 
     fname_upper = (filename or "").upper()
 
@@ -1958,7 +2261,7 @@ def _blocks_to_markdown(blocks, filename):
             txt = b.get("text", "").strip()
             if txt and len(txt) > 1 and txt not in [";", "o+", "---"]:
                 text_lines.append(f"- {txt}")
-        return f"# {filename}\n\n" + "\n".join(text_lines)
+        return f"# {filename}\n\n{img_tag}" + "\n".join(text_lines)
 
     # CATEGORY 1: Plain Text Prose Documents (T1.png)
     if fname_upper.startswith("T1") or "PROSE" in fname_upper:
@@ -1979,7 +2282,7 @@ def _blocks_to_markdown(blocks, filename):
             last_y = y
         if current_line:
             lines.append(" ".join(current_line))
-        return f"# {filename}\n\n" + "\n\n".join(lines)
+        return f"# {filename}\n\n{img_tag}" + "\n\n".join(lines)
 
     # CATEGORY 3: Math Formulas (MF1.jpg, MF2.png)
     if fname_upper.startswith("MF") or "FORMULA" in fname_upper or "MATH" in fname_upper:
@@ -1996,7 +2299,7 @@ def _blocks_to_markdown(blocks, filename):
             if not placed:
                 line_groups.append({"y": b_y, "blocks": [b]})
 
-        lines = [f"# {filename}\n"]
+        lines = [f"# {filename}\n", img_tag] if img_tag else [f"# {filename}\n"]
         header_done = False
         max_cols = max(len(g["blocks"]) for g in line_groups) if line_groups else 1
 
@@ -2035,9 +2338,9 @@ def _blocks_to_markdown(blocks, filename):
 
     max_cols = max(len(g["blocks"]) for g in line_groups) if line_groups else 1
     if max_cols < 2:
-        return f"# {filename}\n\n" + "\n".join(" ".join(b["text"] for b in g["blocks"]) for g in line_groups)
+        return f"# {filename}\n\n{img_tag}" + "\n".join(" ".join(b["text"] for b in g["blocks"]) for g in line_groups)
 
-    lines = [f"# {filename}\n"]
+    lines = [f"# {filename}\n", img_tag] if img_tag else [f"# {filename}\n"]
     header_done = False
 
     for g in line_groups:

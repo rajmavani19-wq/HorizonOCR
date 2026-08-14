@@ -206,7 +206,7 @@ async function startLongHorizonOCR() {
 
   if (!apiSucceeded || !markdownText) {
     // Show a meaningful error in the raw output stream
-    markdownText = '# Processing Notice\n\nThe OCR engine was unable to process this document. Please check that the file is a valid PDF, PNG, JPG, or WEBP and try again.';
+    markdownText = '# Processing Notice\n\nThe OCR engine was unable to process this document. Please check that the file is a valid PDF or PNG and try again.';
     tokens = 0;
     tps = 0;
     latency = 0;
@@ -301,6 +301,9 @@ function stream3PanelTypewriter(fullText, totalTokens, systemTps, decodeLatency)
     if (typewriterCursor) typewriterCursor.style.display = 'none';
     updateOcrControlState(false);
 
+    // Make sure the visualization panel is updated with full rendered content
+    updateVisualizationPanel(fullText);
+
     // Show confidence metric container when visualization process is completed
     const confContainer = document.getElementById('metricConfidenceContainer');
     if (confContainer) confContainer.style.display = 'flex';
@@ -375,11 +378,11 @@ function stream3PanelTypewriter(fullText, totalTokens, systemTps, decodeLatency)
 }
 
 function sanitizeRenderedMarkdown(html) {
-  const template = document.createElement('template');
-  template.innerHTML = html;
+  const div = document.createElement('div');
+  div.innerHTML = html;
   const blockedTags = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'FORM', 'INPUT', 'BUTTON', 'META', 'LINK']);
 
-  template.content.querySelectorAll('*').forEach(element => {
+  div.querySelectorAll('*').forEach(element => {
     if (blockedTags.has(element.tagName)) {
       element.remove();
       return;
@@ -387,7 +390,7 @@ function sanitizeRenderedMarkdown(html) {
     [...element.attributes].forEach(attribute => {
       const name = attribute.name.toLowerCase();
       const value = attribute.value.trim().toLowerCase();
-      if (name.startsWith('on') || name === 'style' || name === 'srcdoc') {
+      if (name.startsWith('on') || name === 'srcdoc') {
         element.removeAttribute(attribute.name);
       }
       if ((name === 'href' || name === 'src') && /^(javascript|vbscript):/.test(value)) {
@@ -395,35 +398,158 @@ function sanitizeRenderedMarkdown(html) {
       }
     });
   });
-  return template.innerHTML;
+  return div.innerHTML;
+}
+
+function fallbackMarkdownParser(md) {
+  if (!md) return '';
+  const lines = md.split('\n');
+  let html = '';
+  let inTable = false;
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Image tag: ![Alt](url)
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgMatch) {
+      if (inTable) { html += '</tbody></table></div>'; inTable = false; }
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<div style="text-align:center;margin:16px 0;"><img src="${imgMatch[2]}" alt="${imgMatch[1]}" style="max-width:100%;height:auto;border-radius:6px;border:1px solid rgba(255,255,255,0.12);" /></div>`;
+      continue;
+    }
+
+    // Horizontal Rule
+    if (/^(\*{3,}|-{3,}|_{3,})$/.test(line.trim())) {
+      if (inTable) { html += '</tbody></table></div>'; inTable = false; }
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<hr style="border:0;border-top:1px solid rgba(255,255,255,0.12);margin:20px 0;" />';
+      continue;
+    }
+
+    // Headings
+    if (line.startsWith('### ')) {
+      if (inTable) { html += '</tbody></table></div>'; inTable = false; }
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h3 style="color:#ffffff;margin:16px 0 8px;font-size:16px;font-weight:600;">${line.substring(4)}</h3>`;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      if (inTable) { html += '</tbody></table></div>'; inTable = false; }
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h2 style="color:#ffffff;margin:20px 0 10px;font-size:18px;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px;">${line.substring(3)}</h2>`;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      if (inTable) { html += '</tbody></table></div>'; inTable = false; }
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h1 style="color:#ffffff;margin:24px 0 12px;font-size:22px;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:8px;">${line.substring(2)}</h1>`;
+      continue;
+    }
+
+    // Tables: | col1 | col2 |
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      if (cells.every(c => /^[-: ]+$/.test(c))) {
+        continue;
+      }
+      if (!inTable) {
+        if (inList) { html += '</ul>'; inList = false; }
+        html += '<div style="overflow-x:auto;margin:16px 0;"><table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid rgba(255,255,255,0.12);">';
+        html += '<thead><tr style="background:rgba(255,255,255,0.06);">';
+        cells.forEach(c => { html += `<th style="padding:8px 12px;border:1px solid rgba(255,255,255,0.1);color:#ffffff;text-align:left;font-weight:600;">${c}</th>`; });
+        html += '</tr></thead><tbody>';
+        inTable = true;
+        continue;
+      } else {
+        html += `<tr style="background:${i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'};">`;
+        cells.forEach(c => { html += `<td style="padding:8px 12px;border:1px solid rgba(255,255,255,0.08);color:#d4d4d8;">${c}</td>`; });
+        html += '</tr>';
+        continue;
+      }
+    } else if (inTable) {
+      html += '</tbody></table></div>';
+      inTable = false;
+    }
+
+    // Lists: - item or * item
+    if (/^[-*]\s+/.test(line.trim())) {
+      if (!inList) { html += '<ul style="padding-left:20px;margin:8px 0;line-height:1.6;">'; inList = true; }
+      html += `<li style="color:#d4d4d8;margin-bottom:4px;">${line.trim().replace(/^[-*]\s+/, '')}</li>`;
+      continue;
+    } else if (inList && line.trim() === '') {
+      html += '</ul>';
+      inList = false;
+    }
+
+    // Paragraphs / lines
+    if (line.trim()) {
+      let formatted = line
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div style="text-align:center;margin:12px 0;"><img src="$2" alt="$1" style="max-width:100%;height:auto;border-radius:6px;border:1px solid rgba(255,255,255,0.12);" /></div>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#ffffff;">$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em style="color:#e4e4e7;">$1</em>')
+        .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px;">$1</code>');
+      html += `<p style="margin-bottom:12px;line-height:1.65;color:#d4d4d8;">${formatted}</p>`;
+    }
+  }
+
+  if (inTable) html += '</tbody></table></div>';
+  if (inList) html += '</ul>';
+  return html;
 }
 
 function updateVisualizationPanel(text) {
   const container = document.getElementById('visualizationContent');
   if (!container) return;
-  
+
   if (appState.currentTab === 'json') {
     const ast = {
       model: 'HorizonOCR',
       mode: appState.activeDashMode,
-      tokens: Math.floor(text.length / 3.5),
+      tokens: Math.floor((text || '').length / 3.5),
       nodes: [
         { type: 'header', level: 1, text: 'HorizonOCR Output' },
-        { type: 'content', raw: text.substring(0, 120) + '...' }
+        { type: 'content', raw: (text || '').substring(0, 120) + '...' }
       ]
     };
     container.innerHTML = `<pre style="color:#a1a1aa;font-family:var(--font-mono);">${JSON.stringify(ast, null, 2)}</pre>`;
     return;
   }
-  
+
   // Rendered view — progressive rich text streaming.
-  // Uses marked.js to parse and render the markdown text as it streams in,
-  // so the user sees formatted headings, tables, lists, and paragraphs
-  // appearing progressively in real time — matching the GIF reference.
-  if (typeof marked !== 'undefined' && text) {
-    // Convert custom image tags ![Image1 | filename.png] to standard markdown image URLs for rendering
-    let renderableText = text.replace(/!\[(Image\d+\s*\|\s*([^\s\]]+))\](?![(])/g, `![$1](${apiUrl('/api/images/$2')})`);
-    container.innerHTML = sanitizeRenderedMarkdown(marked.parse(renderableText));
+  if (text && text.trim()) {
+    // 1. Transform custom image tags: ![Alt Text | filename.png] -> ![Alt Text](/api/images/filename.png)
+    let renderableText = text.replace(/!\[([^\]]*?)\|\s*([^\]]+?\.(?:png|jpg|jpeg|webp|gif|svg))\s*\](?!\()/gi, (match, alt, imgFile) => {
+      const cleanAlt = alt.trim() || 'Document Image';
+      const cleanFile = imgFile.trim();
+      return `![${cleanAlt}](${apiUrl('/api/images/' + encodeURIComponent(cleanFile))})`;
+    });
+
+    // 2. Transform bare image filename URLs: ![Alt Text](filename.png) -> ![Alt Text](/api/images/filename.png)
+    renderableText = renderableText.replace(/!\[([^\]]*?)\]\((?!https?:\/\/|\/|data:)([^)\s]+?\.(?:png|jpg|jpeg|webp|gif|svg))\)/gi, (match, alt, imgFile) => {
+      return `![${alt}](${apiUrl('/api/images/' + encodeURIComponent(imgFile.trim()))})`;
+    });
+
+    let renderedHtml = '';
+    if (typeof marked !== 'undefined') {
+      try {
+        if (typeof marked.parse === 'function') {
+          renderedHtml = marked.parse(renderableText);
+        } else if (typeof marked === 'function') {
+          renderedHtml = marked(renderableText);
+        }
+      } catch (e) {
+        console.warn('[Marked.js parse error]', e);
+      }
+    }
+
+    if (!renderedHtml) {
+      renderedHtml = fallbackMarkdownParser(renderableText);
+    }
+
+    container.innerHTML = sanitizeRenderedMarkdown(renderedHtml);
+
     if (typeof renderMathInElement !== 'undefined') {
       try {
         renderMathInElement(container, {
@@ -449,18 +575,6 @@ function updateVisualizationPanel(text) {
 
 /**
  * Render a pixel-perfect document reconstruction on a white page canvas.
- * 
- * Every text block is placed at its exact extracted position using:
- *   - Original font size (in points, converted to px)
- *   - Font weight (bold detection from PDF flags)
- *   - Font style (italic detection from PDF flags)
- *   - Text color (extracted hex color)
- *   - Horizontal alignment (left/center/right)
- * 
- * Tables are rendered as proper HTML <table> elements at exact coordinates,
- * preserving all rows, columns, and cell content from the source.
- * 
- * Images are rendered as <img> with base64 src at exact coordinates.
  */
 function renderFaithfulDocumentPage(blocks, pageNum) {
   const container = document.getElementById('visualizationContent');
@@ -494,8 +608,9 @@ function renderFaithfulDocumentPage(blocks, pageNum) {
 
   // Render every block at its exact position
   sortedBlocks.forEach(block => {
-    if (block.type === 'image' && block.src) {
-      html += _renderReplicaImage(block);
+    if (block.type === 'image' && (block.src || block.img_name)) {
+      const src = block.src || apiUrl('/api/images/' + (block.img_name || ''));
+      html += _renderReplicaImage({ ...block, src });
     } else if (block.type === 'table' && block.rows && block.rows.length > 0) {
       html += _renderReplicaTable(block);
     } else {

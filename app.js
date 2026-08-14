@@ -792,7 +792,8 @@ function renderLayoutVisualization() {
 
   sorted.forEach((block, idx) => {
     // ── Image blocks — exact position, exact size ──────────────
-    if (block.type === 'image' && block.src) {
+    if (block.type === 'image' && (block.src || block.img_name)) {
+      const imgSrc = block.src || ('/api/images/' + (block.img_name || ''));
       html += `<div class="layout-block layout-block-image" style="
         position:absolute;
         left:${block.x}%;
@@ -807,7 +808,7 @@ function renderLayoutVisualization() {
         animation:fadeInBlock 0.25s ease ${Math.min(idx * 0.04, 1.2)}s forwards;
         z-index:5;
       " title="Image">
-        <img src="${block.src}" style="
+        <img src="${imgSrc}" style="
           width:100%;height:100%;object-fit:fill;display:block;
         " />
       </div>`;

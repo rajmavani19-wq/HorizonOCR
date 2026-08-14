@@ -257,7 +257,7 @@ def infer_one(image_path: str, output_file: str | None, args, idx: int) -> dict:
 
 
 def collect_dataset_images(image_dir: str) -> list[str]:
-    exts = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+    exts = (".png",)
     image_files = []
     for root, _, files in os.walk(image_dir):
         for name in files:

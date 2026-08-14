@@ -6,18 +6,17 @@
       </div>
       <h1 class="page-title-large">Terms of Service</h1>
       <p class="page-subtitle">
-        Legal terms and operational conditions governing access to the HorizonOCR document parsing platform, single-page workspace, and API endpoints.
+        Legal terms, acceptable use conditions, and operational policies governing access to the HorizonOCR document parsing platform, single-page workspace, and API endpoints.
       </p>
     </div>
 
-    <!-- Terms Content Box -->
     <div class="content-card-box">
       <div class="policy-section">
         <h2 class="policy-h2">
           <i data-lucide="check-circle" style="width:20px;height:20px;"></i> 1. Acceptance of Terms & Service Scope
         </h2>
         <p class="policy-text">
-          By accessing or using the HorizonOCR web application (<code>http://127.0.0.1:8080/</code>), services, or API endpoints, you agree to be bound by these Terms of Service. This agreement governs your use of the 3-panel OCR workspace, document upload pipeline, Markdown export tools, and account authentication services.
+          By accessing or using the HorizonOCR web application, services, or API endpoints, you agree to be bound by these Terms of Service. This agreement governs your use of the 3-panel OCR workspace, document upload pipeline, Markdown export tools, and account authentication services.
         </p>
       </div>
 
@@ -26,11 +25,12 @@
           <i data-lucide="user-check" style="width:20px;height:20px;"></i> 2. User Account Confidentiality & Security
         </h2>
         <p class="policy-text">
-          You are responsible for maintaining the confidentiality of your registered account credentials (username and password). All actions performed under your authenticated session are your sole responsibility.
+          You are responsible for maintaining the confidentiality of your registered account credentials. All actions performed under your authenticated session are your sole responsibility.
         </p>
         <ul class="policy-list">
           <li>Account credentials may not be shared, sold, or transferred to third parties.</li>
           <li>Users must notify platform administrators immediately upon discovering any unauthorized session access.</li>
+          <li>Registration requires a valid <code>@gmail.com</code> address or GitHub OAuth verification.</li>
         </ul>
       </div>
 
@@ -45,7 +45,7 @@
           <li>Upload illegal, malicious, or harmful content or malware-embedded containers into the file intake pipeline.</li>
           <li>Attempt to bypass multi-tenant security filters or query image BLOB assets belonging to other user accounts.</li>
           <li>Execute automated scripts to overload or launch Denial-of-Service (DoS) attacks against our backend REST API endpoints.</li>
-          <li>Exceed system limits: max 50MB file size per upload, max 25 pages per PDF document, and supported file types (PDF, PNG, JPG, WEBP).</li>
+          <li>Exceed system limits: max 50MB file size per upload, max 500 pages per PDF document, and supported file types (PDF, PNG).</li>
         </ul>
       </div>
 
@@ -60,10 +60,10 @@
 
       <div class="policy-section">
         <h2 class="policy-h2">
-          <i data-lucide="activity" style="width:20px;height:20px;"></i> 5. Service Availability, Performance SLA & Liability
+          <i data-lucide="activity" style="width:20px;height:20px;"></i> 5. Service Availability, Rate Limiting & Performance SLA
         </h2>
         <p class="policy-text">
-          While we strive for high-throughput 310.8 t/s processing performance and 60fps lockstep scroll synchronization, HorizonOCR is provided on an "as is" and "as available" basis without implied warranties of uninterrupted uptime.
+          While we strive for high-throughput 310+ t/s processing performance and 60fps lockstep scroll synchronization, HorizonOCR is provided on an "as is" and "as available" basis. Rate limits of 12 requests per hour per user are enforced on the document processing endpoint to protect shared compute resources.
         </p>
       </div>
 
@@ -76,7 +76,6 @@
         </p>
       </div>
 
-      <!-- Development Process & Technology Stack Section -->
       <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
         <h2 class="policy-h2">
           <i data-lucide="cpu" style="width:20px;height:20px;"></i> 7. System Development, Engineering Stack & Implementation Disclosure
@@ -101,17 +100,17 @@
             </tr>
             <tr>
               <td><strong>PDF & Vector Engine</strong></td>
-              <td>PyMuPDF (<code>fitz</code>)</td>
+              <td>PyMuPDF (<code>fitz</code>) / PyPDFium2</td>
               <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
             </tr>
             <tr>
-              <td><strong>OCR Fallback Engine</strong></td>
-              <td>RapidOCR ONNX Runtime & Tesseract</td>
-              <td>High-accuracy image OCR fallback for scanned non-searchable PDFs and standalone raster images.</td>
+              <td><strong>OCR Vision Engine</strong></td>
+              <td>ONNX Runtime, DBNet Detector & PP-OCRv3 Recognizer</td>
+              <td>High-accuracy deep-learning OCR pipeline with Bicubic super-resolution for detecting tiny footnotes, serial numbers, and math equations.</td>
             </tr>
             <tr>
               <td><strong>Database Storage</strong></td>
-              <td>SQLite 3 (<code>database.db</code>)</td>
+              <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
               <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
             </tr>
             <tr>
