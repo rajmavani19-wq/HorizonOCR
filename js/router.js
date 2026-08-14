@@ -174,22 +174,51 @@ function switchView(viewName, mode) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Contact Form Submission Handler
-function handleContactSubmit(event) {
+// Contact Form Submission Handler (Persists to SQLite Database)
+async function handleContactSubmit(event) {
   if (event) event.preventDefault();
   const name = document.getElementById('contactName')?.value?.trim();
   const email = document.getElementById('contactEmail')?.value?.trim();
-  const subject = document.getElementById('contactSubject')?.value;
+  const subject = document.getElementById('contactSubject')?.value || 'General Platform Inquiry';
   const message = document.getElementById('contactMessage')?.value?.trim();
+  const submitBtn = event?.target?.querySelector('button[type="submit"]');
 
   if (!name || !email || !message) {
     showNotification('Please fill in all required fields.', 'warning');
     return;
   }
 
-  showNotification('Thank you! Your inquiry has been submitted. Our engineering team will contact you shortly at ' + email + '.', 'success', 6000);
-  const form = document.getElementById('contactForm');
-  if (form) form.reset();
+  const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px;"></span> Submitting...';
+  }
+
+  try {
+    const res = await apiFetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, subject, message })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showNotification(data.error || 'Failed to submit inquiry. Please try again.', 'error');
+      return;
+    }
+
+    showNotification(data.message || ('Thank you! Your inquiry #' + data.inquiry_id + ' has been saved in our system. Our engineering team will contact you shortly.'), 'success', 7000);
+    const form = document.getElementById('contactForm');
+    if (form) form.reset();
+  } catch (err) {
+    console.error('[Contact Form] Submission error:', err);
+    showNotification('Network communication error. Please check your connection and try again.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
+    }
+  }
 }
 
 // Interactive FAQ Accordion Toggle

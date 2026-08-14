@@ -24,7 +24,14 @@
         <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required />
       </div>
 
-      <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width:100%;margin-top:10px;">
+      <div class="auth-agree-group">
+        <input type="checkbox" id="authAgree" class="auth-checkbox" required />
+        <label for="authAgree" class="auth-agree-text">
+          I agree to the <span onclick="switchView('terms')">Terms of Service</span> and <span onclick="switchView('privacy')">Privacy Policy</span>
+        </label>
+      </div>
+
+      <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width:100%;margin-top:6px;">
         Sign In
       </button>
     </form>

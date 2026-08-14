@@ -83,10 +83,20 @@ async function handleAuthSubmit(e) {
   const username = document.getElementById('authUsername').value.trim();
   const email = document.getElementById('authEmail') ? document.getElementById('authEmail').value.trim() : '';
   const password = document.getElementById('authPassword').value.trim();
+  const agreeCheckbox = document.getElementById('authAgree');
   const errorAlert = document.getElementById('authErrorAlert');
   const submitBtn = document.getElementById('authSubmitBtn');
 
   if (errorAlert) errorAlert.style.display = 'none';
+
+  // Agreement validation
+  if (agreeCheckbox && !agreeCheckbox.checked) {
+    if (errorAlert) {
+      errorAlert.textContent = 'Please agree to the Terms of Service and Privacy Policy to continue.';
+      errorAlert.style.display = 'block';
+    }
+    return;
+  }
 
   // ── Login Mode ──
   if (appState.authMode !== 'register') {

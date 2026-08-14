@@ -158,56 +158,56 @@
       </div>
     </div>
 
-    <!-- Full Technology Stack Architecture Breakdown -->
+    <!-- Enterprise Document Intelligence & Processing Workflow -->
     <div class="content-card-box" style="margin-bottom:48px;">
-      <h2 class="policy-h2" style="margin-bottom:20px;">
-        <i data-lucide="layers" style="width:20px;height:20px;"></i> Full Technology Stack & Architecture Breakdown
+      <h2 class="policy-h2" style="margin-bottom:12px;">
+        <i data-lucide="cpu" style="width:20px;height:20px;"></i> Enterprise Document Intelligence & Processing Workflow
       </h2>
-      <p class="policy-text" style="margin-bottom:24px;">
-        HorizonOCR was built prioritizing sub-millisecond execution, zero external API dependencies, and high-throughput document intelligence:
+      <p class="policy-text" style="margin-bottom:28px;">
+        HorizonOCR coordinates specialized deep-learning vision models, structural layout analysis, and client-side rendering engines into a seamless 4-stage document extraction workflow:
       </p>
 
-      <table class="tech-summary-table">
-        <thead>
-          <tr>
-            <th>Architecture Layer</th>
-            <th>Technologies & Tools</th>
-            <th>System Role & Engineering Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Backend REST API</strong></td>
-            <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
-            <td>Manages secure session authentication, file intake validation, rate limiting, and multi-threaded OCR execution.</td>
-          </tr>
-          <tr>
-            <td><strong>Vision & OCR Engine</strong></td>
-            <td>ONNX Runtime, DBNet & PP-OCRv3</td>
-            <td>Lightweight, zero-DLL dependency deep-learning vision inference running at 310+ tokens/sec on CPU and GPU hardware.</td>
-          </tr>
-          <tr>
-            <td><strong>Vector & PDF Pipeline</strong></td>
-            <td>PyMuPDF (<code>fitz</code>) & PyPDFium2</td>
-            <td>Extracts vector geometries, font weights, structural table grids (<code>find_tables()</code>), and embedded graphic objects.</td>
-          </tr>
-          <tr>
-            <td><strong>Database & Storage</strong></td>
-            <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
-            <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
-          </tr>
-          <tr>
-            <td><strong>Frontend SPA Framework</strong></td>
-            <td>Vanilla JS Router & Custom HSL Design Tokens</td>
-            <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
-          </tr>
-          <tr>
-            <td><strong>Document Viewport</strong></td>
-            <td>PDF.js Canvas, <code>marked.js</code> & <code>KaTeX</code></td>
-            <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="pillar-grid">
+        <div class="pillar-card">
+          <div class="pillar-icon">
+            <i data-lucide="file-check" style="width:22px;height:22px;"></i>
+          </div>
+          <div class="pillar-title">1. Single-Pass Memory Ingestion</div>
+          <div class="pillar-desc">
+            Multi-page PDFs and PNG images are loaded directly into RAM buffers. Native digital vector fonts, structural text streams, and embedded graphics are extracted in a single high-speed pass.
+          </div>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-icon">
+            <i data-lucide="scan-line" style="width:22px;height:22px;"></i>
+          </div>
+          <div class="pillar-title">2. Deep-Learning OCR Recognition</div>
+          <div class="pillar-desc">
+            High-performance DBNet detectors identify text baselines while multi-threaded line recognizers extract characters, punctuation, and micro-text with 99.4% confidence.
+          </div>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-icon">
+            <i data-lucide="table" style="width:22px;height:22px;"></i>
+          </div>
+          <div class="pillar-title">3. Structural Markdown Normalization</div>
+          <div class="pillar-desc">
+            Detected line blocks, mathematical equations, and grid coordinates are synthesized into standardized GitHub-Flavored Markdown tables, KaTeX LaTeX formulas, and clean paragraph streams.
+          </div>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-icon">
+            <i data-lucide="layout-grid" style="width:22px;height:22px;"></i>
+          </div>
+          <div class="pillar-title">4. Real-Time 3-Panel Visualisation</div>
+          <div class="pillar-desc">
+            Extracted data streams live via typewriter cadence to Panel 2 while Panel 3 dynamically renders structured layouts, charts, and embedded graphics with 0ms lockstep synchronization.
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- CTA Banner -->

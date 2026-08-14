@@ -76,59 +76,19 @@
         </p>
       </div>
 
+      <!-- OCR Extraction Accuracy & Operational Terms Section -->
       <div class="policy-section" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border-subtle);">
         <h2 class="policy-h2">
-          <i data-lucide="cpu" style="width:20px;height:20px;"></i> 7. System Development, Engineering Stack & Implementation Disclosure
+          <i data-lucide="sliders" style="width:20px;height:20px;"></i> 7. OCR Extraction Accuracy, Supported Document Types & Processing Disclaimers
         </h2>
         <p class="policy-text">
-          The HorizonOCR platform was engineered using a modular, decoupled architecture to ensure sub-millisecond view responsiveness and multi-tenant data safety:
+          HorizonOCR is engineered to deliver high-precision structural extraction across structured and unstructured business documents. Use of our processing service is subject to the following operational parameters:
         </p>
-
-        <table class="tech-summary-table">
-          <thead>
-            <tr>
-              <th>System Area</th>
-              <th>Technologies & Tools</th>
-              <th>Operational Function & Implementation Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Backend REST API</strong></td>
-              <td>Python 3.10+, Flask, Werkzeug, Gunicorn</td>
-              <td>Delivers session authentication, upload endpoints, file validation, rate limiting, and OCR pipeline orchestration.</td>
-            </tr>
-            <tr>
-              <td><strong>PDF & Vector Engine</strong></td>
-              <td>PyMuPDF (<code>fitz</code>) / PyPDFium2</td>
-              <td>Parses text bounding boxes, font weights, structural table grids (<code>find_tables()</code>), and page vector elements.</td>
-            </tr>
-            <tr>
-              <td><strong>OCR Vision Engine</strong></td>
-              <td>ONNX Runtime, DBNet Detector & PP-OCRv3 Recognizer</td>
-              <td>High-accuracy deep-learning OCR pipeline with Bicubic super-resolution for detecting tiny footnotes, serial numbers, and math equations.</td>
-            </tr>
-            <tr>
-              <td><strong>Database Storage</strong></td>
-              <td>SQLite 3 (<code>horizonocr.db</code>) with WAL Mode</td>
-              <td>Stores PBKDF2/SHA-256 password hashes, document history, timing metrics, and binary image BLOBs with <code>user_id</code> isolation.</td>
-            </tr>
-            <tr>
-              <td><strong>Frontend SPA Framework</strong></td>
-              <td>Vanilla JS Router & Custom Vanilla CSS</td>
-              <td>Zero-dependency single-page application router delivering sub-millisecond view transitions and dark glassmorphic UI.</td>
-            </tr>
-            <tr>
-              <td><strong>Document Rendering</strong></td>
-              <td>PDF.js, <code>marked.js</code> & <code>KaTeX</code></td>
-              <td>Client-side canvas PDF preview rendering, GitHub-Flavored Markdown display, and mathematical LaTeX equation parsing.</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <ul class="policy-list" style="margin-top:16px;">
-          <li><strong>0ms Lockstep Scroll Sync:</strong> Uses <code>scroll-behavior: auto</code> and <code>requestAnimationFrame()</code> ratio formulas to eliminate UI delay during rapid typewriter streaming.</li>
-          <li><strong>Binary BLOB Image Isolation:</strong> Extracted embedded PDF graphics are stored directly into SQLite database BLOB columns, preventing unauthorized filesystem URI access across user accounts.</li>
+        <ul class="policy-list">
+          <li><strong>Supported File Formats:</strong> The platform strictly supports <code>PDF</code> and <code>PNG</code> files. File sizes may not exceed 50MB per upload, and multi-page PDF processing is limited to 500 pages per document.</li>
+          <li><strong>Optical Quality & Recognition Constraints:</strong> Recognition fidelity depends on source scan clarity, resolution, contrast, and font readability. Severely skewed, degraded, handwritten, or low-DPI scans may yield partial text inaccuracies.</li>
+          <li><strong>User Verification of Output Deliverables:</strong> Extracted Markdown tables, LaTeX mathematical equations, and AST JSON trees are generated algorithmically. Users are advised to review and verify parsed outputs before utilizing them in mission-critical, financial, or legal workflows.</li>
+          <li><strong>Export Deliverable Rights:</strong> Exported <code>.md</code> Markdown files, copied raw text streams, and visualized HTML layouts remain the exclusive property of the user, free from platform-imposed licensing restrictions.</li>
         </ul>
       </div>
     </div>

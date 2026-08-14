@@ -282,8 +282,22 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS contact_inquiries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                message TEXT NOT NULL,
+                ip_address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
+            )
+        """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_user_created ON documents(user_id, created_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_document_images_user_name ON document_images(user_id, img_name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_contact_created ON contact_inquiries(created_at DESC)")
 
 
 init_db()
@@ -1547,6 +1561,50 @@ def serve_static(path):
         if BASE_DIR in requested_path.parents and requested_path.is_file():
             return send_from_directory(str(BASE_DIR), path)
     return send_from_directory(str(BASE_DIR), "index.html")
+
+
+# --- CONTACT INQUIRIES ENDPOINT ---
+
+@app.route("/api/contact", methods=["POST"])
+@rate_limit(10, 300)
+def submit_contact_inquiry():
+    """Receive and persist user inquiry to SQLite contact_inquiries table."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    subject = (data.get("subject") or "General Platform Inquiry").strip()
+    message = (data.get("message") or "").strip()
+
+    if not name or len(name) < 2:
+        return jsonify({"error": "Please provide your name (at least 2 characters)."}), 400
+
+    if not email or "@" not in email or "." not in email:
+        return jsonify({"error": "Please provide a valid email address."}), 400
+
+    if not message or len(message) < 5:
+        return jsonify({"error": "Please enter your message details (at least 5 characters)."}), 400
+
+    user_id = session.get("user_id")
+    ip_addr = request.remote_addr or "unknown"
+
+    try:
+        with get_db() as conn:
+            cursor = conn.execute("""
+                INSERT INTO contact_inquiries (user_id, name, email, subject, message, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, name, email, subject, message, ip_addr))
+            inquiry_id = cursor.lastrowid
+            conn.commit()
+
+        logger.info("Contact inquiry #%s received from %s (%s)", inquiry_id, email, subject)
+        return jsonify({
+            "status": "success",
+            "message": f"Thank you! Your inquiry has been submitted and saved to our system. Our engineering team will contact you at {email}.",
+            "inquiry_id": inquiry_id
+        }), 201
+    except Exception as e:
+        logger.exception("Failed to save contact inquiry to database: %s", e)
+        return jsonify({"error": "Failed to record inquiry. Please try again later."}), 500
 
 
 # --- AUTHENTICATION ENDPOINTS ---
